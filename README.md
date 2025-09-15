@@ -195,6 +195,11 @@ All profiles are fully customizable - these are just the default names and start
 - **Double**: Default ~36g (customizable)  
 - **Custom**: Default user-defined (customizable)
 
+**Navigation:**
+- **Swipe left/right** to navigate between menu tabs
+- **Tap** to select profiles or buttons
+- **Long press** on profile weights to edit/customize them
+
 **Basic Operation:**
 1. Select profile by tapping on main screen
 2. **Long press** on any profile weight to edit/customize it
@@ -207,6 +212,58 @@ All profiles are fully customizable - these are just the default names and start
 - **Arc Layout**: Clean, minimal arc-based interface
 - **Nerdy Layout**: Detailed charts showing flow rates and real-time grinding analytics
 - **Switching**: Tap anywhere on the grind screen to switch between arc and nerdy layouts during grinding
+
+**Bluetooth Connectivity:**
+- **Auto-enabled**: Bluetooth automatically enables for 5 minutes after power on (indicated by blue 📶 symbol in top-right corner)
+- **Manual control**: Enable Bluetooth manually in Settings → Settings tab (30-minute timer)
+- **Uses**: BLE OTA firmware updates, data export, analytics, and device management
+
+---
+
+## 🗺️ User Interface Navigation
+
+```
+Main Screen (swipe left/right between tabs)
+|
++-- Single Profile 
+|   |-- Weight display (long press to edit)
+|   \-- GRIND button
+|
++-- Double Profile
+|   |-- Weight display (long press to edit)
+|   \-- GRIND button
+|
++-- Custom Profile
+|   |-- Weight display (long press to edit)
+|   \-- GRIND button
+|
+\-- Settings (swipe left/right between sub-tabs)
+    |
+    +-- Tools
+    |   |-- Calibrate button
+    |   |-- Motor test button
+    |   \-- Tare button
+    |
+    +-- Info (default tab)
+    |   |-- System information
+    |   |-- Build version & uptime
+    |   |-- Memory & statistics
+    |   \-- Refresh stats button
+    |
+    +-- Settings
+    |   |-- Bluetooth toggle (30m timer)
+    |   |-- Brightness sliders
+    |   |-- Purge data button (clears logged grind sessions)
+    |   \-- Reset settings button
+    |
+    \-- Reset
+        \-- Factory reset options
+
+During Grinding:
+|-- Weight display & progress
+|-- Tap anywhere: Arc ↔ Nerdy display modes
+\-- STOP button
+```
 
 ---
 
