@@ -312,8 +312,20 @@ void GrindController::update() {
     progress_event.flow_rate = loop_data.flow_rate;
     emit_ui_event(progress_event);
 
+    // Check for negative weight failsafe after TARE_CONFIRM phase during active grinding
+    if (phase != GrindPhase::COMPLETED && phase != GrindPhase::TIMEOUT && 
+        phase != GrindPhase::IDLE && phase != GrindPhase::INITIALIZING &&
+        phase != GrindPhase::SETUP && phase != GrindPhase::TARING && 
+        phase != GrindPhase::TARE_CONFIRM && loop_data.current_weight < -1.0f) {
+        timeout_phase = phase;
+        grinder->stop();
+        
+        queue_log_message("--- NEGATIVE WEIGHT FAILSAFE TRIGGERED: %.2fg in phase %s ---\n", 
+                         loop_data.current_weight, get_phase_name(timeout_phase));
+        switch_phase(GrindPhase::TIMEOUT, loop_data);
+    }
     // Only check timeout during active grinding phases, not during completion states
-    if (phase != GrindPhase::COMPLETED && phase != GrindPhase::TIMEOUT && check_timeout()) {
+    else if (phase != GrindPhase::COMPLETED && phase != GrindPhase::TIMEOUT && check_timeout()) {
         timeout_phase = phase;
         grinder->stop();
         
