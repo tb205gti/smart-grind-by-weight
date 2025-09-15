@@ -317,14 +317,24 @@ void SettingsEventHandler::handle_brightness_normal_slider() {
     
     // Update label
     ui_manager->settings_screen.update_brightness_labels();
-    
-    // Store in preferences
-    Preferences* prefs = ui_manager->hardware_manager->get_preferences();
-    prefs->begin("brightness", false);
-    prefs->putFloat("normal", brightness);
-    prefs->end();
-    
+    // Do not persist on move; commit on release only
     DEBUG_PRINTF("Normal brightness set to %d%% (%.2f)\n", brightness_percent, brightness);
+}
+
+void SettingsEventHandler::handle_brightness_normal_slider_released() {
+    if (!ui_manager->hardware_manager) return;
+    
+    lv_obj_t* slider = ui_manager->settings_screen.get_brightness_normal_slider();
+    if (!slider) return;
+    
+    int brightness_percent = lv_slider_get_value(slider);
+    float brightness = brightness_percent / 100.0f;
+    
+    // Persist on release only
+    Preferences prefs;
+    prefs.begin("brightness", false);
+    prefs.putFloat("normal", brightness);
+    prefs.end();
 }
 
 void SettingsEventHandler::handle_brightness_screensaver_slider() {
@@ -342,17 +352,23 @@ void SettingsEventHandler::handle_brightness_screensaver_slider() {
     // Update label
     ui_manager->settings_screen.update_brightness_labels();
     
-    // Store in preferences
-    Preferences* prefs = ui_manager->hardware_manager->get_preferences();
-    prefs->begin("brightness", false);
-    prefs->putFloat("screensaver", brightness);
-    prefs->end();
-    
+    // Do not persist on move; commit on release only
     DEBUG_PRINTF("Screensaver brightness set to %d%% (%.2f)\n", brightness_percent, brightness);
 }
 
 void SettingsEventHandler::handle_brightness_screensaver_slider_released() {
     if (!ui_manager->hardware_manager) return;
+    
+    // Persist screensaver brightness on release
+    lv_obj_t* slider = ui_manager->settings_screen.get_brightness_screensaver_slider();
+    if (slider) {
+        int brightness_percent = lv_slider_get_value(slider);
+        float brightness = brightness_percent / 100.0f;
+        Preferences prefs;
+        prefs.begin("brightness", false);
+        prefs.putFloat("screensaver", brightness);
+        prefs.end();
+    }
     
     // Restore normal brightness when user releases the screensaver slider
     float normal_brightness = ui_manager->get_normal_brightness();

@@ -193,6 +193,7 @@ void UIManager::setup_event_handlers() {
     lv_obj_add_event_cb(settings_screen.get_refresh_stats_button(), EventBridgeLVGL::dispatch_event, LV_EVENT_CLICKED, EVENT_DATA(SETTINGS_REFRESH_STATS));
     lv_obj_add_event_cb(settings_screen.get_ble_toggle(), EventBridgeLVGL::dispatch_event, LV_EVENT_VALUE_CHANGED, EVENT_DATA(BLE_TOGGLE));
     lv_obj_add_event_cb(settings_screen.get_brightness_normal_slider(), EventBridgeLVGL::dispatch_event, LV_EVENT_VALUE_CHANGED, EVENT_DATA(BRIGHTNESS_NORMAL_SLIDER));
+    lv_obj_add_event_cb(settings_screen.get_brightness_normal_slider(), EventBridgeLVGL::dispatch_event, LV_EVENT_RELEASED, EVENT_DATA(BRIGHTNESS_NORMAL_SLIDER_RELEASED));
     lv_obj_add_event_cb(settings_screen.get_brightness_screensaver_slider(), EventBridgeLVGL::dispatch_event, LV_EVENT_VALUE_CHANGED, EVENT_DATA(BRIGHTNESS_SCREENSAVER_SLIDER));
     lv_obj_add_event_cb(settings_screen.get_brightness_screensaver_slider(), EventBridgeLVGL::dispatch_event, LV_EVENT_RELEASED, EVENT_DATA(BRIGHTNESS_SCREENSAVER_SLIDER_RELEASED));
     
@@ -488,6 +489,10 @@ void UIManager::handle_ble_toggle() {
 
 void UIManager::handle_brightness_normal_slider() {
     settings_handler->handle_brightness_normal_slider();
+}
+
+void UIManager::handle_brightness_normal_slider_released() {
+    settings_handler->handle_brightness_normal_slider_released();
 }
 
 void UIManager::handle_brightness_screensaver_slider() {
@@ -989,10 +994,12 @@ void UIManager::grind_event_handler(const GrindEventData& event_data) {
 float UIManager::get_normal_brightness() const {
     if (!hardware_manager) return USER_SCREEN_BRIGHTNESS_NORMAL;
     
-    Preferences* prefs = hardware_manager->get_preferences();
-    prefs->begin("brightness", true); // Read-only
-    float brightness = prefs->getFloat("normal", USER_SCREEN_BRIGHTNESS_NORMAL);
-    prefs->end();
+    // Use a local Preferences instance to avoid interfering with the shared
+    // global Preferences handle used elsewhere (e.g., "grinder" namespace).
+    Preferences prefs;
+    prefs.begin("brightness", true); // Read-only
+    float brightness = prefs.getFloat("normal", USER_SCREEN_BRIGHTNESS_NORMAL);
+    prefs.end();
     
     // Ensure minimum 15% brightness to prevent inoperability
     if (brightness < 0.15f) brightness = 0.15f;
@@ -1002,10 +1009,12 @@ float UIManager::get_normal_brightness() const {
 float UIManager::get_screensaver_brightness() const {
     if (!hardware_manager) return USER_SCREEN_BRIGHTNESS_DIMMED;
     
-    Preferences* prefs = hardware_manager->get_preferences();
-    prefs->begin("brightness", true); // Read-only
-    float brightness = prefs->getFloat("screensaver", USER_SCREEN_BRIGHTNESS_DIMMED);
-    prefs->end();
+    // Use a local Preferences instance to avoid interfering with the shared
+    // global Preferences handle used elsewhere (e.g., "grinder" namespace).
+    Preferences prefs;
+    prefs.begin("brightness", true); // Read-only
+    float brightness = prefs.getFloat("screensaver", USER_SCREEN_BRIGHTNESS_DIMMED);
+    prefs.end();
     
     // Ensure minimum 15% brightness to prevent inoperability
     if (brightness < 0.15f) brightness = 0.15f;

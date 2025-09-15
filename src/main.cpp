@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <LittleFS.h>
+#include <esp_system.h>
 #include "hardware/hardware_manager.h"
 #include "system/state_machine.h"
 #include "controllers/profile_controller.h"
@@ -33,6 +34,23 @@ static uint32_t core1_last_heartbeat_time = 0;
 void setup() {
     Serial.begin(HW_SERIAL_BAUD_RATE);
     
+    // Log reset reason to help diagnose unexpected resets/freeze scenarios
+    esp_reset_reason_t rr = esp_reset_reason();
+    const char* rr_str = "UNKNOWN";
+    switch (rr) {
+        case ESP_RST_POWERON: rr_str = "POWERON"; break;
+        case ESP_RST_EXT: rr_str = "EXT (Reset Pin)"; break;
+        case ESP_RST_SW: rr_str = "SW (esp_restart)"; break;
+        case ESP_RST_PANIC: rr_str = "PANIC (Exception)"; break;
+        case ESP_RST_INT_WDT: rr_str = "INT_WDT"; break;
+        case ESP_RST_TASK_WDT: rr_str = "TASK_WDT"; break;
+        case ESP_RST_WDT: rr_str = "WDT"; break;
+        case ESP_RST_DEEPSLEEP: rr_str = "DEEPSLEEP"; break;
+        case ESP_RST_BROWNOUT: rr_str = "BROWNOUT"; break;
+        case ESP_RST_SDIO: rr_str = "SDIO"; break;
+        default: break;
+    }
+    BLE_LOG("[STARTUP] Reset reason: %s (%d)\n", rr_str, rr);
     
     
     // Early startup heartbeat - helps capture initialization sequence

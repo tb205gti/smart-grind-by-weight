@@ -525,11 +525,15 @@ void SettingsScreen::refresh_statistics() {
 void SettingsScreen::update_brightness_sliders() {
     if (!hardware_manager || !brightness_normal_slider || !brightness_screensaver_slider) return;
     
-    Preferences* prefs = hardware_manager->get_preferences();
+    // Read from the dedicated "brightness" namespace using a local Preferences
+    // instance so we don't interfere with the global shared handle.
+    Preferences prefs;
+    prefs.begin("brightness", true); // read-only
     
-    // Load brightness values from preferences (default to current compile-time values)
-    float normal_brightness = prefs->getFloat("normal", 1.0f); // USER_SCREEN_BRIGHTNESS_NORMAL equivalent
-    float screensaver_brightness = prefs->getFloat("screensaver", 0.35f); // USER_SCREEN_BRIGHTNESS_DIMMED equivalent
+    // Load brightness values from preferences (default to compile-time values)
+    float normal_brightness = prefs.getFloat("normal", USER_SCREEN_BRIGHTNESS_NORMAL);
+    float screensaver_brightness = prefs.getFloat("screensaver", USER_SCREEN_BRIGHTNESS_DIMMED);
+    prefs.end();
     
     // Convert from 0.0-1.0 to 15-100 range
     int normal_percent = (int)(normal_brightness * 100);
@@ -561,4 +565,3 @@ void SettingsScreen::update_brightness_labels() {
     lv_label_set_text(brightness_normal_label, normal_text);
     lv_label_set_text(brightness_screensaver_label, screensaver_text);
 }
-

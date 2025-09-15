@@ -51,6 +51,7 @@ public:
     void handle_settings_back();
     void handle_ble_toggle();
     void handle_brightness_normal_slider();
+    void handle_brightness_normal_slider_released();
     void handle_brightness_screensaver_slider();
     void handle_brightness_screensaver_slider_released();
     void handle_confirm();

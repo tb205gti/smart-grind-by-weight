@@ -98,6 +98,10 @@ void EventBridgeLVGL::handle_event(EventType event_type, lv_event_t* e) {
         case EventType::BRIGHTNESS_NORMAL_SLIDER:
             ui_manager->handle_brightness_normal_slider();
             break;
+        
+        case EventType::BRIGHTNESS_NORMAL_SLIDER_RELEASED:
+            ui_manager->handle_brightness_normal_slider_released();
+            break;
             
         case EventType::BRIGHTNESS_SCREENSAVER_SLIDER:
             ui_manager->handle_brightness_screensaver_slider();
