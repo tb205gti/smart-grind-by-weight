@@ -1,205 +1,176 @@
-/* LVGL + Arduino + FT3168 Touch integration
- * Optimized: one circle + crosshair lines follow the touch point
- */
+#include <Arduino.h>
+#include <LittleFS.h>
+#include "hardware/hardware_manager.h"
+#include "system/state_machine.h"
+#include "controllers/profile_controller.h"
+#include "controllers/grind_controller.h"
+#include "ui/ui_manager.h"
+#include "config/constants.h"
+#include "config/git_info.h"
+#include "bluetooth/manager.h"
+#include "tasks/task_manager.h"
+#include "tasks/weight_sampling_task.h"
+#include "tasks/grind_control_task.h"
+#include "tasks/file_io_task.h"
 
- #include <Arduino.h>
- #include <lvgl.h>
- #include <Wire.h>
- #include <Arduino_GFX_Library.h>
- 
- /*******************************************************************************
-  * Arduino_GFX setting for Waveshare ESP32-S3-Touch-AMOLED-1.64
-  ******************************************************************************/
- #define GFX_DEV_DEVICE WAVESHARE_ESP32_S3_TOUCH_AMOLED_1_64
- Arduino_DataBus *bus = new Arduino_ESP32QSPI(
-     9 /* CS */, 10 /* SCK */, 11 /* D0 */, 12 /* D1 */, 13 /* D2 */, 14 /* D3 */);
- Arduino_GFX *g = new Arduino_CO5300(
-     bus, 21 /* RST */, 0 /* rotation */, 280 /* width */, 456 /* height */,
-     20 /* col offset 1 */, 0 /* row offset 1 */, 180 /* col_offset2 */, 24 /* row_offset2 */);
- Arduino_Canvas *gfx = new Arduino_Canvas(
-     280 /* width */, 456 /* height */, g, 0, 0, 0);
- 
- /*******************************************************************************
-  * FT3168 Touch driver (minimal, single finger)
-  ******************************************************************************/
- #define FT3168_ADDR 0x38
- #define FT3168_REG_NUM_TOUCHES 0x02
- 
- static uint16_t touch_last_x = 0;
- static uint16_t touch_last_y = 0;
- static bool touch_pressed = false;
- 
- static void ft3168_init()
- {
-   Wire.begin(47, 48); // SDA, SCL pins
-   Wire.setClock(300000);
- }
- 
- static void ft3168_poll()
- {
-   uint8_t buf[5] = {0};
- 
-   Wire.beginTransmission(FT3168_ADDR);
-   Wire.write(FT3168_REG_NUM_TOUCHES);
-   Wire.endTransmission(false);
-   if (Wire.requestFrom(FT3168_ADDR, 5) == 5)
-   {
-     for (int i = 0; i < 5; i++)
-       buf[i] = Wire.read();
- 
-     uint8_t touches = buf[0] & 0x0F;
-     if (touches > 0)
-     {
-       uint16_t x = ((buf[1] & 0x0F) << 8) | buf[2];
-       uint16_t y = ((buf[3] & 0x0F) << 8) | buf[4];
-       touch_last_x = x;
-       touch_last_y = y;
-       touch_pressed = true;
-     }
-     else
-     {
-       touch_pressed = false;
-     }
-   }
-   else
-   {
-     touch_pressed = false;
-   }
- }
- 
- /*******************************************************************************
-  * LVGL objects for visualization
-  ******************************************************************************/
- static lv_obj_t *circle;
- static lv_obj_t *hline;
- static lv_obj_t *vline;
- 
- static void create_touch_markers(lv_obj_t *parent)
- {
-   // Circle
-   circle = lv_obj_create(parent);
-   lv_obj_set_size(circle, 20, 20);
-   lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, 0);
-   lv_obj_set_style_bg_color(circle, lv_color_hex(0xFF0000), 0);
-   lv_obj_set_style_border_opa(circle, LV_OPA_TRANSP, 0);
-   lv_obj_add_flag(circle, LV_OBJ_FLAG_HIDDEN);
- 
-   // Horizontal line
-   hline = lv_obj_create(parent);
-   lv_obj_set_size(hline, lv_display_get_horizontal_resolution(lv_display_get_default()), 2);
-   lv_obj_set_style_bg_color(hline, lv_color_hex(0x00FF00), 0);
-   lv_obj_set_style_border_opa(hline, LV_OPA_TRANSP, 0);
-   lv_obj_add_flag(hline, LV_OBJ_FLAG_HIDDEN);
- 
-   // Vertical line
-   vline = lv_obj_create(parent);
-   lv_obj_set_size(vline, 2, lv_display_get_vertical_resolution(lv_display_get_default()));
-   lv_obj_set_style_bg_color(vline, lv_color_hex(0x00FF00), 0);
-   lv_obj_set_style_border_opa(vline, LV_OPA_TRANSP, 0);
-   lv_obj_add_flag(vline, LV_OBJ_FLAG_HIDDEN);
- }
- 
- /*Read the touchpad for LVGL*/
- void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data)
- {
-   ft3168_poll();
- 
-   if (touch_pressed)
-   {
-     data->state = LV_INDEV_STATE_PRESSED;
-     data->point.x = touch_last_x;
-     data->point.y = touch_last_y;
- 
-     // Move markers
-     lv_obj_clear_flag(circle, LV_OBJ_FLAG_HIDDEN);
-     lv_obj_set_pos(circle, touch_last_x - 10, touch_last_y - 10);
- 
-     lv_obj_clear_flag(hline, LV_OBJ_FLAG_HIDDEN);
-     lv_obj_set_y(hline, touch_last_y - 1);
- 
-     lv_obj_clear_flag(vline, LV_OBJ_FLAG_HIDDEN);
-     lv_obj_set_x(vline, touch_last_x - 1);
-   }
-   else
-   {
-     data->state = LV_INDEV_STATE_RELEASED;
- 
-     // Hide markers
-     lv_obj_add_flag(circle, LV_OBJ_FLAG_HIDDEN);
-     lv_obj_add_flag(hline, LV_OBJ_FLAG_HIDDEN);
-     lv_obj_add_flag(vline, LV_OBJ_FLAG_HIDDEN);
-   }
- }
- 
- /*******************************************************************************
-  * LVGL glue
-  ******************************************************************************/
- 
- uint32_t screenWidth;
- uint32_t screenHeight;
- uint32_t bufSize;
- lv_display_t *disp;
- lv_color_t *disp_draw_buf;
- 
- uint32_t millis_cb(void) { return millis(); }
- 
- void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
- {
-   uint32_t w = lv_area_get_width(area);
-   uint32_t h = lv_area_get_height(area);
- 
-   gfx->draw16bitRGBBitmap(area->x1, area->y1, (uint16_t *)px_map, w, h);
- 
-   lv_disp_flush_ready(disp);
- }
- 
- void setup()
- {
-   Serial.begin(115200);
-   Serial.println("Arduino_GFX + LVGL + FT3168 example (optimized)");
- 
-   // Init Display
-   if (!gfx->begin())
-   {
-     Serial.println("gfx->begin() failed!");
-   }
-   gfx->fillScreen(RGB565_BLACK);
- 
-   // Init LVGL
-   lv_init();
-   lv_tick_set_cb(millis_cb);
- 
-   screenWidth = gfx->width();
-   screenHeight = gfx->height();
-   bufSize = screenWidth * 40;
-   disp_draw_buf = (lv_color_t *)heap_caps_malloc(bufSize * 2, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-   if (!disp_draw_buf)
-     disp_draw_buf = (lv_color_t *)heap_caps_malloc(bufSize * 2, MALLOC_CAP_8BIT);
-   
-   disp = lv_display_create(screenWidth, screenHeight);
-   lv_display_set_flush_cb(disp, my_disp_flush);
-   lv_display_set_buffers(disp, disp_draw_buf, NULL, bufSize * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
- 
-   // Init touch
-   ft3168_init();
-   lv_indev_t *indev = lv_indev_create();
-   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
-   lv_indev_set_read_cb(indev, my_touchpad_read);
- 
-   // UI
-   lv_obj_t *label = lv_label_create(lv_scr_act());
-   lv_label_set_text(label, "Touch to see circle + crosshair");
-   lv_obj_center(label);
- 
-   // Create markers
-   create_touch_markers(lv_scr_act());
- 
-   Serial.println("Setup done");
- }
- 
- void loop()
- {
-   lv_task_handler();
-   gfx->flush();
-   delay(5);
- }
+HardwareManager hardware_manager;
+StateMachine state_machine;
+ProfileController profile_controller;
+GrindController grind_controller;
+UIManager ui_manager;
+BluetoothManager g_bluetooth_manager;
+BluetoothManager& bluetooth_manager = g_bluetooth_manager;
+
+#if ENABLE_REALTIME_HEARTBEAT
+// Core 1 timing metrics (global scope for main loop access)
+static uint32_t core1_cycle_count_10s = 0;
+static uint32_t core1_cycle_time_sum_ms = 0;
+static uint32_t core1_cycle_time_min_ms = UINT32_MAX;
+static uint32_t core1_cycle_time_max_ms = 0;
+static uint32_t core1_last_heartbeat_time = 0;
+#endif
+
+void setup() {
+    Serial.begin(HW_SERIAL_BAUD_RATE);
+    
+    
+    
+    // Early startup heartbeat - helps capture initialization sequence
+    BLE_LOG("[STARTUP] Initializing ESP32-S3 Coffee Scale - Build %d - Core1 active\n", BUILD_NUMBER);
+    
+    // Initialize LittleFS once - format if necessary
+    if (!LittleFS.begin(true)) {
+        BLE_LOG("ERROR: LittleFS mount failed - continuing without filesystem\n");
+    } else {
+        BLE_LOG("✅ LittleFS mounted successfully\n");
+    }
+    
+    hardware_manager.init();
+    profile_controller.init(hardware_manager.get_preferences());
+    grind_controller.init(hardware_manager.get_load_cell(), hardware_manager.get_grinder(), hardware_manager.get_preferences());
+    
+    // Set up the reference so HardwareManager can query GrindController state
+    hardware_manager.set_grind_controller(&grind_controller);
+    
+    bluetooth_manager.init(hardware_manager.get_preferences());
+    
+    // Check for OTA failure to determine initial state
+    String failed_ota_build = bluetooth_manager.check_ota_failure_after_boot();
+    bool ota_failed = !failed_ota_build.isEmpty();
+    
+    if (ota_failed) {
+        BLE_LOG("BOOT: Starting in OTA failure state for expected build %s\n", failed_ota_build.c_str());
+        state_machine.init(UIState::OTA_UPDATE_FAILED);
+    } else {
+        state_machine.init(UIState::READY);
+    }
+    
+    ui_manager.init(&hardware_manager, &state_machine, &profile_controller, &grind_controller, &bluetooth_manager);
+    
+    // Store OTA failure info in ui_manager if needed
+    if (ota_failed) {
+        ui_manager.set_ota_failure_info(failed_ota_build.c_str());
+    }
+    
+    // Set up UI status callback to avoid circular dependency
+    bluetooth_manager.set_ui_status_callback([](const char* status) {
+        ui_manager.update_ota_status(status);
+    });
+    
+    // Enable BLE by default during bootup with 2-minute timeout
+    // (Previously disabled by default for security, now enabled for user convenience)
+    bluetooth_manager.enable_during_bootup();
+    
+    // Initialize individual task modules BEFORE TaskManager creates FreeRTOS tasks
+    // This ensures all task dependencies are ready before tasks start running
+    BLE_LOG("[STARTUP] Initializing task module dependencies...\n");
+    weight_sampling_task.init(hardware_manager.get_load_cell(), &grind_logger);
+    grind_control_task.init(&grind_controller, hardware_manager.get_load_cell(), 
+                           hardware_manager.get_grinder(), &grind_logger);
+    
+    BLE_LOG("✅ Task module dependencies initialized\n");
+    
+    // Initialize TaskManager with hardware and system interfaces
+    BLE_LOG("[STARTUP] Initializing FreeRTOS Task Architecture...\n");
+    bool task_init_success = task_manager.init(&hardware_manager, &state_machine, &profile_controller, 
+                                              &grind_controller, &bluetooth_manager, &ui_manager);
+    
+    if (!task_init_success) {
+        BLE_LOG("ERROR: Failed to initialize TaskManager - system cannot start\n");
+        while (true) {
+            delay(1000); // Halt system if task initialization fails
+        }
+    }
+    
+    BLE_LOG("✅ TaskManager initialized successfully\n");
+    
+    // Initialize remaining task modules that depend on TaskManager queues
+    file_io_task.init(task_manager.get_file_io_queue());
+    
+    BLE_LOG("✅ All task modules initialized\n");
+}
+
+void loop() {
+
+
+#if ENABLE_REALTIME_HEARTBEAT
+    // Core 1 main loop timing (monitor main loop health)
+    uint32_t cycle_start_time = millis();
+    core1_cycle_count_10s++;
+    if (core1_last_heartbeat_time == 0) core1_last_heartbeat_time = cycle_start_time;
+#endif
+    
+    // Check OTA state and suspend hardware tasks if needed
+    static bool hardware_suspended = false;
+    bool ota_active = bluetooth_manager.is_updating();
+    
+    if (ota_active && !hardware_suspended) {
+        task_manager.suspend_hardware_tasks();
+        hardware_suspended = true;
+        BLE_LOG("[MAIN] Hardware tasks suspended for OTA\n");
+    } else if (!ota_active && hardware_suspended) {
+        task_manager.resume_hardware_tasks();
+        hardware_suspended = false;
+        BLE_LOG("[MAIN] Hardware tasks resumed after OTA\n");
+    }
+    
+    // UI events are now processed inside the UI render FreeRTOS task
+    // to serialize all LVGL updates on a single thread.
+    
+#if ENABLE_REALTIME_HEARTBEAT
+    // Calculate Core 1 main loop timing
+    uint32_t cycle_end_time = millis();
+    uint32_t cycle_duration = cycle_end_time - cycle_start_time;
+    core1_cycle_time_sum_ms += cycle_duration;
+    if (cycle_duration < core1_cycle_time_min_ms) core1_cycle_time_min_ms = cycle_duration;
+    if (cycle_duration > core1_cycle_time_max_ms) core1_cycle_time_max_ms = cycle_duration;
+    
+    // Core 1 Main Loop Heartbeat - Monitor main loop health (every 10 seconds)
+    if (cycle_end_time - core1_last_heartbeat_time >= REALTIME_HEARTBEAT_INTERVAL_MS) {
+        uint32_t avg_cycle_time = core1_cycle_count_10s > 0 ? core1_cycle_time_sum_ms / core1_cycle_count_10s : 0;
+        
+        // Get system states
+        bool is_grinding = grind_controller.is_active();
+        const char* ble_state = bluetooth_manager.is_enabled() ? 
+                               (bluetooth_manager.is_connected() ? "CONN" : "ADV") : "OFF";
+        const char* grinder_state = is_grinding ? "ACTIVE" : "IDLE";
+        const char* tasks_status = task_manager.are_tasks_healthy() ? "HEALTHY" : "ERROR";
+        size_t free_heap_kb = ESP.getFreeHeap() / 1024;
+        
+        BLE_LOG("[%lums MAIN_LOOP_HEARTBEAT] Cycles: %lu/10s | Avg: %lums (%lu-%lums) | Tasks: %s | BLE: %s | Grinder: %s | Mem: %zuKB | Build: #%d\n",
+               millis(), core1_cycle_count_10s, avg_cycle_time, core1_cycle_time_min_ms, core1_cycle_time_max_ms,
+               tasks_status, ble_state, grinder_state, free_heap_kb, BUILD_NUMBER);
+        
+        // Reset Core 1 metrics for next interval
+        core1_cycle_count_10s = 0;
+        core1_cycle_time_sum_ms = 0;
+        core1_cycle_time_min_ms = UINT32_MAX;
+        core1_cycle_time_max_ms = 0;
+        core1_last_heartbeat_time = cycle_end_time;
+    }
+#endif
+    
+    // The main loop now runs much lighter since FreeRTOS tasks handle all the heavy work
+    // Just yield to allow FreeRTOS scheduler to run other tasks efficiently
+    vTaskDelay(pdMS_TO_TICKS(10)); // Small delay to prevent starving other tasks
+}

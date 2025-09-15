@@ -1,0 +1,11 @@
+# Name,   Type, SubType,  Offset,   Size,  Flags
+# ESP32-S3 Partition Table for BLE Delta OTA Updates
+# Flash: 16MB total
+nvs,      data, nvs,      0x9000,   20K
+otadata,  data, ota,      ,         8K
+phy_init, data, phy,      ,         4K
+factory,  app,  factory,  ,         3072K
+ota_0,    app,  ota_0,    ,         3072K
+ota_1,    app,  ota_1,    ,         3072K
+spiffs,   data, 0x82,     ,         3072K
+patch,    data, 0x82,     ,         2048K

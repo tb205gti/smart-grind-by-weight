@@ -1,0 +1,42 @@
+MIT License
+
+Copyright (c) 2025 Grind-by-Weight Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Hardware Designs
+
+Hardware designs, schematics, and mechanical drawings in this repository are licensed under the CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S v2).
+
+You may redistribute and modify these designs under the terms of the CERN-OHL-S v2. A copy of the licence is available at https://cern-ohl.web.cern.ch/
+
+The hardware designs are provided "as-is" without any warranty. Users are responsible for ensuring safety and compliance with local electrical codes and regulations when building and installing the hardware.
+
+## Third-Party Components
+
+This project incorporates several third-party libraries and components:
+
+- LVGL: MIT License (https://github.com/lvgl/lvgl)
+- Arduino_GFX: BSD License (https://github.com/moononournation/Arduino_GFX)  
+- esp32-flashz: MIT License (https://github.com/vortigont/esp32-flashz)
+- ESP-IDF: Apache 2.0 License (https://github.com/espressif/esp-idf)
+
+See individual component documentation for complete license information.

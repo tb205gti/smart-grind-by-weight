@@ -1,178 +1,262 @@
-# LVGL 9.x on Waveshare ESP32-S3-Touch-AMOLED-1.64 (PlatformIO)
+# Smart Grind-by-Weight
 
-This project demonstrates how to run **LVGL 9.x** with touch support on the **Waveshare ESP32-S3-Touch-AMOLED-1.64** board using **PlatformIO**. It includes a minimal FT3168 touch driver (via I²C) and a simple visualization (circle + crosshair lines) to show touch points clearly.
+**Turn any grinder into a precision smart grind-by-weight system**
 
------
+[<img src="images/smart-grind-by-weight-render.PNG" alt="Smart Grind-by-Weight Modification" width="35%">](images/smart-grind-by-weight-render.PNG)
 
-## Features
+The Smart Grind-by-Weight is a user-friendly, touch interface-driven, highly accurate open source grinder modification that transforms any grinder with a motor relay accepting 3.3V logic levels into an intelligent grind-by-weight system. Originally developed for the Eureka Mignon Specialita, the system can be easily adapted for other grinders.
 
-- Display: **1.64" AMOLED (280×456), CO5300 driver IC**
-- Touch: **FT3168 capacitive touch controller (I²C)**
-- IMU: **QMI8658C 6-axis sensor**
-- Flash: **W25Q128JVSI 128Mbit**
-- Power: **MP1605GTF-Z buck converter + ETA6098 battery charger**
-- GUI: **LVGL 9.x** with PlatformIO
-- Example UI:
-  - "Hello World" label
-  - Circle + crosshair following finger touches
+**The concept is simple:** Perform a "brain swap" on your grinder. Replace the original controller with our intelligent ESP32-S3 controller and add a precision load cell to the mix.
 
------
+**Upgrade cost:** €30-40 in parts
 
-## Project Structure
+**Target accuracy:** ±0.05g tolerance
 
+Currently the 3D printed scale components are designed for a 54mm dosing cup. You can adjust them to your specific needs using the included Fusion 360 source files.
+
+---
+
+## ✨ Features
+
+- **User-friendly interface** with 3 profiles: Single, Double, Custom
+- **Beautiful display** with simple graphics or detailed charts (easily switchable between the two)
+- **High accuracy**: ±0.05g error tolerance
+- **For the Eureka**: No permanent modifications needed. Just swap the screen and add 3D printed parts.
+- **BLE OTA updates** for firmware
+- **Advanced analytics and data logging** using BLE data transfer and a local Python Streamlit report
+
+---
+
+## 🧠 Grinding Algorithm
+
+Our predictive grinding system uses an intelligent approach that learns and adapts:
+
+```mermaid
+flowchart LR
+  start((Start Grind)) --> T[TARING]
+  T --> E[PREDICTIVE<br/>learn latency & flow_rate<br/>compute motor_stop_target_weight]
+  E --> S[SETTLING]
+  S --> P[PULSE<br/>bounded pulse using effective_flow_rate]
+  P -->|abs_error <= tolerance OR error < 0 OR pulses >= max| C[COMPLETED]
+  P -->|needs more| S
 ```
-.
-├── platformio.ini          # PlatformIO configuration
-├── lv_conf.h               # LVGL configuration
-├── src/
-│   └── main.cpp            # Main application code
-├── lib/                    # Local libraries (if needed)
-├── include/                # Project headers
-└── README.md
+
+Key ideas:
+- Determine grind latency from first detectable flow over a 500ms confirmation window.
+- Compute a motor stop target weight from latency x flow x coast ratio (USER_LATENCY_TO_COAST_RATIO).
+- Stop at target - motor_stop_target_weight, then apply bounded pulses based on 95th percentile flow rate.
+
+### Why This Algorithm
+
+- **Zero-shot learning algorithm**: An algorithm that needs no prior knowledge or manually tuned variables. Instantly adapts to changes in temperature, humidity, grinding coarseness, bean type, etc.
+- **Two-tier approach**: Grinding is very noisy (mechanical, electrical) so we use a sophisticated approach:
+  - First try to grind as fast as possible using a predictive algorithm where we try to just barely UNDERSHOOT the target weight (because overshoot is unrecoverable)
+  - This learns us about the flow rate and grind latency (bean to cup time), which is used to predict when to stop the motor (coast time)
+  - Then we use the worst (highest) 95th percentile flow rate to start pulsing until the cup is full. We're conservative because the real world is less predictable than we want. We err on undershooting to prevent overshoot. We repeat until the target ± tolerance is reached.
+
+---
+
+## 🛠️ Parts List
+
+**Electronics:**
+- Waveshare ESP32-S3 1.64inch AMOLED Touch Display - https://www.waveshare.com/esp32-s3-touch-amoled-1.64.htm
+- HX711 ADC module  
+- MAVIN or T70 load cell (0.3 - 1KG range) - Don't use cheap unshielded small load cells, you'll hurt the accuracy
+  - Examples: https://nl.aliexpress.com/item/1005009409460619.html
+  - https://www.tinytronics.nl/en/sensors/weight-pressure-force/load-cells/mavin-load-cell-0.3kg
+- 6× M3 screws (±10mm long)
+- 1000μF capacitor (10V)
+- Wires and dupont connectors
+- Angled pin headers (not the straight kind)
+- If you don't want to solder to the Eureka: a JST-PH 4 pin male connector (buy a JST-PH kit)
+
+**3D Printed Parts:**
+
+All parts have been designed to print without support. Keep the orientation of the STL files. To make it printable without supports, some holes are covered with a thin layer of plastic that you can easily remove.
+
+- **[Screen adapter](3d_files/Waveshare%20AMOLED%201_64%20adapter.stl)** - Holds the Waveshare screen at the location of the original Eureka Mignon screen
+- **[Back plate](3d_files/Back%20plate.stl)** - Mounts to the Eureka Mignon and holds the HX711 and load cell  
+- **[Cover plate](3d_files/Cover.stl)** - To make it look clean :)
+- **[Dosing cup holder](3d_files/Cup%20holder.stl)** - Connects to the other end of the load cell and offers a place for the dosing cup
+- **[Dosing cup holder screw hole covers](3d_files/Cup%20holder%20hole%20cover.stl)** - Hides screw holes and protects against coffee grounds
+
+**Fusion 360 Source Files:**
+- **All components**: https://a360.co/3HYgubb
+
+Use these to adjust the mounts to your specific use case. They've been tuned to hold a dosing cup snugly. Compatible dosing cup: https://nl.aliexpress.com/item/1005006526852408.html
+
+---
+
+## 📹 Assembly Video
+
+Watch the complete Eureka Mignon Specialita assembly process: https://youtu.be/-kfKjiwJsGM
+
+---
+
+## 🔌 Installation
+
+[<img src="images/wiring_diagram.png" alt="Wiring Diagram" width="50%">](images/wiring_diagram.png)
+
+**Pin Configuration:**
+
+**HX711 Load Cell Amplifier Connections:**
+```
+ESP32-S3 GPIO 2    →    HX711 SCK
+ESP32-S3 GPIO 3    →    HX711 DOUT
+ESP32-S3 3.3V      →    HX711 VCC
+ESP32-S3 GND       →    HX711 GND
 ```
 
------
+**Eureka Mignon Connections:**
+```
+ESP32-S3 GPIO 18   →    WHITE wire (Motor control signal)
+ESP32-S3 GND       →    RED wire (⚠️ Ground - non-standard color!)
+ESP32-S3 5V        →    BLACK wire (⚠️ Power - non-standard color!)
+                        GRAY wire (Button signal - not used)
+```
 
-## PlatformIO Configuration
+**Eureka 4-Pin Connector Reference:**
+- RED wire = GND (⚠️ non-standard!)
+- WHITE wire = Motor control signal  
+- GRAY wire = Button signal (unused in this project)
+- BLACK wire = 5V power (⚠️ non-standard!)
 
-The `platformio.ini` file is pre-configured with:
+⚠️ **CRITICAL:** Eureka uses reversed wire colors - RED is ground, BLACK is power!
 
-- **Board**: ESP32-S3 DevKit C1 (compatible)
-- **Framework**: Arduino
-- **CPU Frequency**: 240MHz
-- **Flash Size**: 16MB
-- **PSRAM**: Enabled
-- **Libraries**: LVGL 9.x and Arduino_GFX (via Git)
+**Installation Steps:**
+1. Flash the firmware on the Waveshare board (see Build Instructions below)
+2. Add the 1000μF capacitor between 5V and ground (to protect against brownouts)
+3. Create a plug connection for the HX711 to Waveshare board:
+   - Add angled pin headers to the HX711 (VCC, GND, DOUT, SCK pins)
+   - Connect dupont cables to the Waveshare board
+   - Load cell can be directly soldered to the HX711
+4. **For Eureka Mignon:**
+   - Disassemble top plate and front plate. Remove the button and store it (we don't need this button anymore)
+   - Use the JST-PH plug to connect to the waveshare board
+   - **WARNING:** In some Eureka units, the wire colors to the screen are REVERSED! Test to be sure.
+   - Mount the Waveshare screen using the 3D printed adapter plate where the original screen was
+   - Fish the HX711 wire through the housing and have it exit via the hole where the button previously was
+   - Mount the load cell and HX711 to the 3D printed back plate
+   - Clip the 3D printed back plate onto the Eureka Mignon
+   - Connect the plug to the HX711
+   - Add the 3D printed cover plate and screw down
+   - Add the 3D printed dosing cup holder on the load cell and screw down
+   - Hide the screws with the 3D printed screw covers
 
-Key settings:
-- PSRAM enabled for graphics buffers
-- Optimized build flags for ESP32-S3
-- USB CDC debugging enabled
-- Fast upload speed (921600 baud)
+---
 
------
+## 🚀 Build Instructions
 
-## Dependencies
-
-The project automatically handles dependencies via PlatformIO:
-
-1. **LVGL 9.x**: Installed via PlatformIO registry (`lvgl/lvgl@^9.3.0`)
-2. **Arduino_GFX**: Installed directly from GitHub (`https://github.com/moononournation/Arduino_GFX.git`)
-
-No manual library installation required!
-
------
-
-## How to Build & Run
-
-### Prerequisites
-- [PlatformIO Core](https://platformio.org/install/cli) or [PlatformIO IDE](https://platformio.org/platformio-ide)
-- ESP32-S3 board with USB-C cable
-
-### Build and Upload
+**USB Flashing (Initial Setup):**
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd waveshare-amoled164-lvgl9-platformio
+# Install Python dependencies
+python3 -m venv tools/venv
+tools/venv/bin/pip install -r tools/requirements.txt
 
-# Build the project
-pio run
-
-# Upload to board
-pio run --target upload
-
-# Monitor serial output
-pio device monitor
+# Build and upload via USB  
+./tools/grinder build
+pio run --target upload -e waveshare-esp32s3-touch-amoled-164
 ```
 
-### Using PlatformIO IDE
-1. Open the project folder in VS Code with PlatformIO extension
-2. Click "Build" (✓) in the PlatformIO toolbar
-3. Click "Upload" (→) to flash the board
-4. Click "Serial Monitor" to view output
+**BLE OTA Updates (After Initial Setup):**
+```bash
+# Build firmware and upload wirelessly  
+./tools/grinder build-upload
 
------
+# Or upload specific firmware
+./tools/grinder upload path/to/firmware.bin
 
-## Board Pin Usage
+# Force full firmware update (skip delta patching)
+./tools/grinder build-upload --force-full
+```
 
-### Display (AMOLED, CO5300 driver)
-- **GPIO9–14**: QSPI interface
-  - GPIO9: OLED_CS
-  - GPIO10: OLED_CLK
-  - GPIO11: OLED_SIO0
-  - GPIO12: OLED_SIO1
-  - GPIO13: OLED_SIO2
-  - GPIO14: OLED_SIO3
-- **GPIO21**: OLED_RESET
+---
 
-### Touch Panel (FT3168, I²C)
-- **GPIO47**: SDA
-- **GPIO48**: SCL
-- I²C Address: **0x38**
+## ⚖️ Initial Calibration
 
-### Available for External Use
-Safe GPIO pins for your project:
-- **GPIO1, GPIO2, GPIO3**: ADC1 channels + Touch
-- **GPIO5, GPIO6, GPIO7, GPIO8**: ADC1 channels + Touch
-- **GPIO15, GPIO16**: ADC2 channels + XTAL_32K
-- **GPIO17, GPIO18**: ADC2 channels
-- **GPIO42**: Available
-- **GPIO45**: Available
+After flashing the firmware to your device, you'll need to calibrate the load cell for accurate weight measurements:
 
------
+1. **Access calibration**: Open Settings → Swipe left to Tools tab → Press "CALIBRATE"
+2. **Empty calibration**: Remove all weight from the scale platform → Press OK
+3. **Weight calibration**: 
+   - Place a known weight on the scale platform (e.g., coffee mug with water - weigh it first on a kitchen scale)
+   - Use the +/- buttons to adjust the displayed weight value to match your known weight
+   - Press OK to complete calibration
 
-## Touch Visualization
+**Tip**: A coffee mug with some water makes an ideal calibration weight - just weigh it on a kitchen scale first to know the exact weight.
 
-- **Circle**: shows precise touch coordinate
-- **Crosshair lines**: span the entire width and height, intersecting at the touch point → useful if your finger blocks the view
+---
 
------
+## 📱 Usage
 
-## Configuration Files
+**Grinding Profiles:**
+All profiles are fully customizable - these are just the default names and starting weights:
+- **Single**: Default ~18g (customizable)
+- **Double**: Default ~36g (customizable)  
+- **Custom**: Default user-defined (customizable)
 
-### `lv_conf.h`
-LVGL configuration file located in project root. Key settings:
-- Color depth: 16-bit (RGB565)
-- Memory size: 64KB
-- Widgets enabled: All standard widgets
-- Themes: Default theme enabled
-- Demo widgets: Enabled
+**Basic Operation:**
+1. Select profile by tapping on main screen
+2. **Long press** on any profile weight to edit/customize it
+3. Place dosing cup on scale platform
+4. Press GRIND button - scale will tare automatically
+5. System grinds to precise target weight using predictive algorithm
+6. GRIND COMPLETE screen shows final weight and statistics
 
-### `platformio.ini`
-PlatformIO configuration with ESP32-S3 specific settings:
-- Board configuration matching Arduino IDE
-- Automatic dependency management
-- Build optimization flags
-- Monitor and upload settings
+**Display Modes:**
+- **Arc Layout**: Clean, minimal arc-based interface
+- **Nerdy Layout**: Detailed charts showing flow rates and real-time grinding analytics
+- **Switching**: Tap anywhere on the grind screen to switch between arc and nerdy layouts during grinding
 
------
+---
 
-## Extending the Project
+## 📊 Streamlit Report & Analytics
 
-This project serves as a foundation for more complex applications:
+[<img src="images/analytics.png" alt="Analytics Dashboard" width="50%">](images/analytics.png)
 
-1. **Add Sensors**: Use available GPIO pins for HX711, buttons, relays
-2. **Custom UI**: Create professional interfaces with LVGL widgets
-3. **Wireless**: Add WiFi/Bluetooth functionality
-4. **Storage**: Use onboard SD card or SPIFFS
-5. **Power Management**: Implement battery monitoring and sleep modes
+**Launch Interactive Data Analysis:**
+```bash
+# Export data and launch Streamlit dashboard
+./tools/grinder analyze
 
------
+# Or view reports from existing data  
+./tools/grinder report
+```
 
-## Hardware Resources
+**Tools Folder Commands:**
+```bash
+./tools/grinder --help          # Show all available commands
+./tools/grinder scan            # Scan for BLE devices
+./tools/grinder connect         # Connect to grinder device  
+./tools/grinder debug           # Stream live debug logs
+./tools/grinder info            # Get device system information
+./tools/grinder export          # Export grind data to database
+```
 
-### Board Documentation
-- **Product Page**: [https://www.waveshare.com/esp32-s3-touch-amoled-1.64.htm](https://www.waveshare.com/esp32-s3-touch-amoled-1.64.htm)
-- **Wiki/Documentation**: [https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-1.64](https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-1.64)
+The `tools/` directory contains:
+- **`grinder`**: Unified script for all operations (build, upload, analyze)
+- **`ble/`**: BLE communication tools and OTA update system
+- **`streamlit-reports/`**: Interactive data visualization and analytics
+- **`database/`**: SQLite database management for grind session storage
 
-### Other Onboard Peripherals
-- **USB**: GPIO19 (D-), GPIO20 (D+)
-- **UART0**: GPIO43 (TX), GPIO44 (RX)
-- **SD Card**: GPIO38–41 (CS, MOSI, MISO, CLK)
-- **IMU (QMI8658C)**: GPIO47 (SDA), GPIO48 (SCL), GPIO46 (INT)
-- **BOOT Button**: GPIO0
-- **Power**:
-  - 3V3 (regulated output)
-  - 5V (USB/external)
-  - BAT (battery input, charging supported)
+---
+
+## 🙏 Credits & Inspiration
+
+This project was inspired by and builds upon the excellent work of:
+
+- **[openGBW](https://github.com/jb-xyz/openGBW)** by jb-xyz - Open source grind-by-weight system
+- **[Coffee Grinder Smart Scale](https://besson.co/projects/coffee-grinder-smart-scale)** by Besson - Smart scale integration concepts
+
+---
+
+## 📝 Personal Note
+
+My goal with this project was to get real-life experience coding with AI agents. The code reflects that learning journey. I've learned a lot, but ultimately I'm in awe of how fast you can produce results with AI assistance. 
+
+What I've learned so far is that "vibe coding" with AI is great for POCs and testing theories. But afterward you must pivot and reimplement features while keeping a close eye on the architecture the AI produces. Otherwise you'll get stuck at dead ends that require painful refactoring (been there, done that). 
+
+In this project, that's most obvious when looking at the UI and state management - it's a bit cluttered in places. But I'm very happy with the end result and I'm releasing the project as is. It'll never be perfect, but it works great and transforms the coffee grinding experience.
+
+**Project Status**: This project is shared 'as-is' and I have limited availability for support as I've already invested significant time in its development. While I'm happy to share what I've built, please understand that troubleshooting and feature requests may receive limited attention.
 
