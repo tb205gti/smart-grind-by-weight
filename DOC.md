@@ -6,7 +6,7 @@ Complete build instructions, parts list, and usage guide for the Smart Grind-by-
 
 ## 📋 Table of Contents
 
-- [Parts List](#-parts-list)
+- [Parts List](#️-parts-list)
 - [Assembly Video](#-assembly-video)
 - [Installation & Wiring](#-installation--wiring)
 - [Build Instructions](#-build-instructions)
@@ -16,6 +16,7 @@ Complete build instructions, parts list, and usage guide for the Smart Grind-by-
 - [Bluetooth Connectivity](#-bluetooth-connectivity)
 - [Analytics & Data Export](#-analytics--data-export)
 - [Algorithm Details](#-algorithm-details)
+- [Frequently Asked Questions](#-frequently-asked-questions)
 
 ---
 
@@ -232,11 +233,11 @@ During Grinding:
 
 ---
 
-## 📶 Bluetooth Connectivity
+## 🔵 Bluetooth Connectivity
 
 ### Auto-Enable
 - **Bluetooth automatically enables for 5 minutes** after power on
-- Indicated by blue 📶 symbol in top-right corner
+- Indicated by blue Bluetooth symbol in top-right corner
 
 ### Manual Control
 - Enable Bluetooth manually in **Settings → Settings tab**
@@ -296,6 +297,22 @@ During Grinding:
 2. **Compute motor stop target weight** from latency × flow × coast ratio (USER_LATENCY_TO_COAST_RATIO)
 3. **Stop at target - motor_stop_target_weight**, then apply bounded pulses based on 95th percentile flow rate
 4. **Conservative approach**: Err on undershooting to prevent overshoot, repeat until target ± tolerance reached
+
+---
+
+## ❓ Frequently Asked Questions
+
+**Will this modification work on grinders other than the Eureka Mignon Specialita (e.g., Baratza, Niche, or other Eureka models like the Crono, Atom, XL, Manuale)?**
+
+The electronics are universal, but you'll need to explore your specific grinder. Find a 5V supply internally or provide one externally (USB adapter). Identify motor control signals and design custom mounting for the display and scale. I can't provide specific guidance for other grinders as I don't have access to test them. The Fusion 360 source files are included to help with adaptations.
+
+**Can I use this to grind directly into a portafilter instead of a dosing cup?**
+
+Yes, but you'll need to make modifications. Use a 1kg load cell instead of 0.3kg for better accuracy with heavier portafilters. You'll also need to design and 3D print a custom portafilter holder that mounts to the load cell. The dosing cup holder design can serve as a starting point for your portafilter adapter.
+
+**What is the benefit of this mod for a single-dosing grinder like the Niche Zero?**
+
+It's about workflow optimization vs. ultimate precision. Benefits: easier workflow with no manual measuring, precise dose accounting for retention, consistent results. Downside: potential stale retention from previous grinds. Choose based on your goals - do you want optimized ease and consistency, or are you willing to accept daily complexity for that perfect shot? This mod strikes a balance toward maintainable workflow efficiency.
 
 ---
 

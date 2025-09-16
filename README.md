@@ -79,7 +79,7 @@ This project was inspired by and builds upon the excellent work of:
 
 ## 📝 Personal Note
 
-My goal with this project was to get real-life experience coding with AI agents. The code reflects that learning journey. I've learned a lot, but ultimately I'm in awe of how fast you can produce results with AI assistance. 
+My goal with this project was to get real-life experience coding with AI agents. The code reflects that learning journey. I've learned a lot, and ultimately I'm in awe of how fast you can produce results with AI assistance. 
 
 What I've learned so far is that "vibe coding" with AI is great for POCs and testing theories. But afterward you must pivot and reimplement features while keeping a close eye on the architecture the AI produces. Otherwise you'll get stuck at dead ends that require painful refactoring (been there, done that). 
 
