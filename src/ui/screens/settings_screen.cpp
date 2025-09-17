@@ -195,7 +195,7 @@ void SettingsScreen::create_settings_page(lv_obj_t* parent) {
     lv_obj_set_flex_align(parent, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_gap(parent, 15, 0);
     lv_obj_set_style_pad_top(parent, 20, 0);
-    
+
     // Enable vertical scrolling on the settings page
     lv_obj_set_scroll_dir(parent, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(parent, LV_SCROLLBAR_MODE_AUTO);
@@ -206,6 +206,9 @@ void SettingsScreen::create_settings_page(lv_obj_t* parent) {
     lv_obj_set_style_text_font(title, &lv_font_montserrat_32, 0);
     lv_obj_set_style_text_color(title, lv_color_hex(THEME_COLOR_SECONDARY), 0);
 
+    // Bluetooth separator
+    create_separator(parent, "Bluetooth");
+
     // BLE OTA Toggle
     lv_obj_t* ble_container = lv_obj_create(parent);
     lv_obj_set_size(ble_container, 260, 80);
@@ -215,14 +218,34 @@ void SettingsScreen::create_settings_page(lv_obj_t* parent) {
     lv_obj_set_style_bg_color(ble_container, lv_color_hex(THEME_COLOR_NEUTRAL), 0);
     lv_obj_set_style_border_width(ble_container, 0, 0);
     lv_obj_set_style_radius(ble_container, 8, 0);
+    lv_obj_clear_flag(ble_container, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t* ble_label = lv_label_create(ble_container);
-    lv_label_set_text(ble_label, "Bluetooth");
+    lv_label_set_text(ble_label, "Enabled");
     lv_obj_set_style_text_font(ble_label, &lv_font_montserrat_24, 0);
     lv_obj_set_style_text_color(ble_label, lv_color_hex(THEME_COLOR_TEXT_PRIMARY), 0);
 
     ble_toggle = lv_switch_create(ble_container);
     lv_obj_set_size(ble_toggle, 100, 60);
+
+    // BLE Startup Toggle
+    lv_obj_t* ble_startup_container = lv_obj_create(parent);
+    lv_obj_set_size(ble_startup_container, 260, 80);
+    lv_obj_set_layout(ble_startup_container, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(ble_startup_container, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(ble_startup_container, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_bg_color(ble_startup_container, lv_color_hex(THEME_COLOR_NEUTRAL), 0);
+    lv_obj_set_style_border_width(ble_startup_container, 0, 0);
+    lv_obj_set_style_radius(ble_startup_container, 8, 0);
+    lv_obj_clear_flag(ble_startup_container, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* ble_startup_label = lv_label_create(ble_startup_container);
+    lv_label_set_text(ble_startup_label, "Startup");
+    lv_obj_set_style_text_font(ble_startup_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(ble_startup_label, lv_color_hex(THEME_COLOR_TEXT_PRIMARY), 0);
+
+    ble_startup_toggle = lv_switch_create(ble_startup_container);
+    lv_obj_set_size(ble_startup_toggle, 100, 60);
 
     // BLE Status label
     ble_status_label = lv_label_create(parent);
@@ -237,6 +260,9 @@ void SettingsScreen::create_settings_page(lv_obj_t* parent) {
     lv_obj_set_style_text_font(ble_timer_label, &lv_font_montserrat_24, 0);
     lv_obj_set_style_text_color(ble_timer_label, lv_color_hex(THEME_COLOR_WARNING), 0);
     lv_obj_clear_flag(ble_timer_label, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Display separator
+    create_separator(parent, "Display");
 
     // Normal Brightness Slider
     lv_obj_t* brightness_normal_container = lv_obj_create(parent);
@@ -411,6 +437,7 @@ void SettingsScreen::show() {
     visible = true;
     update_ble_status();
     update_brightness_sliders();
+    update_bluetooth_startup_toggle();
 }
 
 void SettingsScreen::hide() {
@@ -453,10 +480,11 @@ void SettingsScreen::update_ble_status() {
     // Update status text
     if (bluetooth_manager->is_enabled()) {
         if (bluetooth_manager->is_connected()) {
-            lv_label_set_text(ble_status_label, "Bluetooth: Connected");
+            lv_label_set_text(ble_status_label, "Connected");
         } else {
-            lv_label_set_text(ble_status_label, "Bluetooth: Advertising");
+            lv_label_set_text(ble_status_label, "Advertising");
         }
+        lv_obj_clear_flag(ble_status_label, LV_OBJ_FLAG_HIDDEN);
         
         // Show remaining time
         unsigned long remaining_ms = bluetooth_manager->get_bluetooth_timeout_remaining_ms();
@@ -464,9 +492,11 @@ void SettingsScreen::update_ble_status() {
         char timer_text[64];
         snprintf(timer_text, sizeof(timer_text), "Auto-disable in: %lu min", remaining_min);
         lv_label_set_text(ble_timer_label, timer_text);
+        lv_obj_clear_flag(ble_timer_label, LV_OBJ_FLAG_HIDDEN);
     } else {
-        lv_label_set_text(ble_status_label, "Bluetooth: Disabled");
-        lv_label_set_text(ble_timer_label, "");
+        // When nothing to display hide the status labels
+        lv_obj_add_flag(ble_status_label, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ble_timer_label, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
@@ -564,4 +594,61 @@ void SettingsScreen::update_brightness_labels() {
     
     lv_label_set_text(brightness_normal_label, normal_text);
     lv_label_set_text(brightness_screensaver_label, screensaver_text);
+}
+
+lv_obj_t* SettingsScreen::create_separator(lv_obj_t* parent, const char* text) {
+    // Create separator container
+    lv_obj_t* separator_container = lv_obj_create(parent);
+    lv_obj_set_size(separator_container, 280, 40);
+    lv_obj_set_style_bg_opa(separator_container, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(separator_container, 0, 0);
+    lv_obj_set_style_pad_all(separator_container, 0, 0);
+    lv_obj_set_layout(separator_container, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(separator_container, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(separator_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    // Create left line
+    lv_obj_t* left_line = lv_obj_create(separator_container);
+    lv_obj_set_size(left_line, LV_SIZE_CONTENT, 2);
+    lv_obj_set_flex_grow(left_line, 1);
+    lv_obj_set_style_bg_color(left_line, lv_color_hex(THEME_COLOR_TEXT_SECONDARY), 0);
+    lv_obj_set_style_border_width(left_line, 0, 0);
+    lv_obj_set_style_radius(left_line, 1, 0);
+
+    // Create text label
+    lv_obj_t* separator_label = lv_label_create(separator_container);
+    lv_label_set_text(separator_label, text);
+    lv_obj_set_style_text_font(separator_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(separator_label, lv_color_hex(THEME_COLOR_TEXT_SECONDARY), 0);
+    lv_obj_set_style_pad_left(separator_label, 10, 0);
+    lv_obj_set_style_pad_right(separator_label, 10, 0);
+
+    // Create right line
+    lv_obj_t* right_line = lv_obj_create(separator_container);
+    lv_obj_set_size(right_line, LV_SIZE_CONTENT, 2);
+    lv_obj_set_flex_grow(right_line, 1);
+    lv_obj_set_style_bg_color(right_line, lv_color_hex(THEME_COLOR_TEXT_SECONDARY), 0);
+    lv_obj_set_style_border_width(right_line, 0, 0);
+    lv_obj_set_style_radius(right_line, 1, 0);
+
+    return separator_container;
+}
+
+void SettingsScreen::update_bluetooth_startup_toggle() {
+    if (!ble_startup_toggle) return;
+
+    // Read from the "bluetooth" namespace using a local Preferences instance
+    Preferences prefs;
+    prefs.begin("bluetooth", true); // read-only
+
+    // Load startup value from preferences (default to false)
+    bool startup_enabled = prefs.getBool("startup", true);
+    prefs.end();
+
+    // Update toggle state
+    if (startup_enabled) {
+        lv_obj_add_state(ble_startup_toggle, LV_STATE_CHECKED);
+    } else {
+        lv_obj_clear_state(ble_startup_toggle, LV_STATE_CHECKED);
+    }
 }
