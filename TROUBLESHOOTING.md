@@ -57,11 +57,13 @@ The use of the pioarduino platform fork can sometimes cause PlatformIO's cache o
    ```
 3. **Restart VS Code**
 4. **Reopen the project** - PlatformIO will reinitialize and download the correct platform packages
+5. **Perform a clean build** - Use PlatformIO's "Clean" then "Build" to ensure a fresh compilation
 
 ### Alternative (Less Nuclear)
 If you want to try a less aggressive approach first:
 1. Close VS Code
 2. Delete only the platforms cache: `~/.platformio/platforms/` (or `%USERPROFILE%\.platformio\platforms\` on Windows)
 3. Restart VS Code and reopen project
+4. Perform a clean build in PlatformIO
 
 **Note:** This issue is specific to the pioarduino platform fork usage and the way PlatformIO handles custom platform URLs.
