@@ -6,10 +6,22 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-VENV_PYTHON="$SCRIPT_DIR/venv/bin/python3"
+
+# Platform detection for venv paths
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]] && [[ ! -f /proc/version || ! $(grep -q Microsoft /proc/version 2>/dev/null) ]]; then
+    # Windows (Git Bash, MSYS2, Cygwin) - but not WSL
+    VENV_PYTHON="$SCRIPT_DIR/venv/Scripts/python.exe"
+    VENV_PIP="$SCRIPT_DIR/venv/Scripts/pip.exe"
+    VENV_STREAMLIT="$SCRIPT_DIR/venv/Scripts/streamlit.exe"
+else
+    # Unix-like (Linux, macOS, WSL)
+    VENV_PYTHON="$SCRIPT_DIR/venv/bin/python3"
+    VENV_PIP="$SCRIPT_DIR/venv/bin/pip"
+    VENV_STREAMLIT="$SCRIPT_DIR/venv/bin/streamlit"
+fi
+
 BLE_TOOL="$SCRIPT_DIR/ble/grinder-ble.py"
 STREAMLIT_DIR="$SCRIPT_DIR/streamlit-reports"
-VENV_STREAMLIT="$SCRIPT_DIR/venv/bin/streamlit"
 DB_PATH="$SCRIPT_DIR/database/grinder_data.db"
 
 # Colors for output
@@ -52,11 +64,24 @@ check_venv() {
 cmd_install_quiet() {
     if [[ ! -d "$SCRIPT_DIR/venv" ]]; then
         print_info "Creating virtual environment..."
-        python3 -m venv "$SCRIPT_DIR/venv"
+        # Try python3 first, fallback to python (Windows often uses 'python')
+        if command -v python3 >/dev/null 2>&1; then
+            python3 -m venv "$SCRIPT_DIR/venv"
+        elif command -v python >/dev/null 2>&1; then
+            python -m venv "$SCRIPT_DIR/venv"
+        else
+            print_error "Python not found. Please install Python 3.8+"
+            exit 1
+        fi
     fi
     
     print_info "Installing Python packages..."
-    "$SCRIPT_DIR/venv/bin/pip" install -q -r "$SCRIPT_DIR/requirements.txt"
+    if [[ ! -f "$VENV_PIP" ]]; then
+        print_error "Virtual environment pip not found at: $VENV_PIP"
+        print_info "Platform: $OSTYPE, Expected venv structure may be incorrect"
+        exit 1
+    fi
+    "$VENV_PIP" install -q -r "$SCRIPT_DIR/requirements.txt"
 }
 
 show_usage() {
@@ -178,7 +203,7 @@ cmd_report() {
     # Check if streamlit exists in venv
     if [[ ! -f "$VENV_STREAMLIT" ]]; then
         print_warning "Streamlit not found, installing..."
-        "$SCRIPT_DIR/venv/bin/pip" install streamlit>=1.28.0 plotly>=5.15.0
+        "$VENV_PIP" install streamlit>=1.28.0 plotly>=5.15.0
     fi
     
     print_info "Using database: $db_file"
