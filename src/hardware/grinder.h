@@ -1,7 +1,6 @@
 #pragma once
 #include <Arduino.h>
-#include <driver/rmt_tx.h>
-#include <driver/rmt_encoder.h>
+#include <esp32-hal-rmt.h>
 #include <functional>
 #include "../config/pins.h"
 #include "../config/hardware_config.h"
@@ -16,9 +15,7 @@ private:
     bool grinding;
     bool initialized;
     
-    // RMT pulse control
-    rmt_channel_handle_t rmt_channel;
-    rmt_encoder_handle_t current_encoder;
+    // RMT pulse control (Arduino HAL only)
     bool pulse_active;
     bool rmt_initialized;
     

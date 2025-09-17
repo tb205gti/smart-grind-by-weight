@@ -44,10 +44,19 @@ print_info() {
 
 check_venv() {
     if [[ ! -f "$VENV_PYTHON" ]]; then
-        print_error "Virtual environment not found"
-        print_info "Run: pip3 install -r tools/requirements.txt"
-        exit 1
+        print_warning "Virtual environment not found, setting up automatically..."
+        cmd_install_quiet
     fi
+}
+
+cmd_install_quiet() {
+    if [[ ! -d "$SCRIPT_DIR/venv" ]]; then
+        print_info "Creating virtual environment..."
+        python3 -m venv "$SCRIPT_DIR/venv"
+    fi
+    
+    print_info "Installing Python packages..."
+    "$SCRIPT_DIR/venv/bin/pip" install -q -r "$SCRIPT_DIR/requirements.txt"
 }
 
 show_usage() {
@@ -75,7 +84,7 @@ ${YELLOW}BLE Commands:${NC}
   info                 Get comprehensive device system information
 
 ${YELLOW}Development Commands:${NC}
-  install              Install Python dependencies
+  install              Manually install Python dependencies (auto-setup when needed)
   monitor              Monitor live debug output via BLE
   clean                Clean build artifacts
 
@@ -101,8 +110,10 @@ EOF
 # Command implementations
 cmd_build() {
     print_header "Building Firmware"
+    check_venv
     cd "$PROJECT_DIR"
-    pio run -e waveshare-esp32s3-touch-amoled-164
+    # Use PlatformIO from the project venv to avoid global `pio` differences
+    "$VENV_PYTHON" -m platformio run -e waveshare-esp32s3-touch-amoled-164
     print_success "Firmware build completed"
 }
 
@@ -209,14 +220,7 @@ cmd_info() {
 
 cmd_install() {
     print_header "Installing Dependencies"
-    
-    if [[ ! -d "$SCRIPT_DIR/venv" ]]; then
-        print_info "Creating virtual environment..."
-        python3 -m venv "$SCRIPT_DIR/venv"
-    fi
-    
-    print_info "Installing Python packages..."
-    "$SCRIPT_DIR/venv/bin/pip" install -r "$SCRIPT_DIR/requirements.txt"
+    cmd_install_quiet
     print_success "Dependencies installed"
 }
 
@@ -229,8 +233,10 @@ cmd_monitor() {
 
 cmd_clean() {
     print_header "Cleaning Build Artifacts"
+    check_venv
     cd "$PROJECT_DIR"
-    pio run --target clean
+    # Use PlatformIO from the project venv to avoid global `pio` differences
+    "$VENV_PYTHON" -m platformio run --target clean
     rm -rf "$PROJECT_DIR/.pio/build"
     print_success "Build artifacts cleaned"
 }
