@@ -118,6 +118,17 @@ ESP32-S3 5V        →    BLACK wire (⚠️ Power - non-standard color!)
 
 ## 🚀 Build Instructions
 
+### Development Platform
+
+This project uses the **pioarduino ESP32 platform** (a community fork) instead of the standard Espressif ESP32 platform. This ensures proper support for our device.
+
+**Platform Details:**
+- **Platform**: [pioarduino/platform-espressif32](https://github.com/pioarduino/platform-espressif32) (stable release)
+- **Framework**: Arduino ESP32 Core 3.x (controlled by pioarduino platform)
+- **Target**: ESP32-S3 with AMOLED touch display
+
+The platform dependency is automatically handled by PlatformIO via the `platformio.ini` configuration.
+
 ### Initial USB Flashing
 ```bash
 # Install Python dependencies

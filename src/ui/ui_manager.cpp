@@ -743,7 +743,7 @@ void UIManager::update_settings_state() {
     char leight_sensor_info[256];
     snprintf(leight_sensor_info, sizeof(leight_sensor_info), 
         "Instant: %.2fg\nSmoothed: %.2fg\nSamples: %d\nRaw: %ld", 
-        weight_instant, weight_smoothed, sample_count, raw_reading);
+        weight_instant, weight_smoothed, sample_count, (long)raw_reading);
     
     unsigned long uptime_ms = millis();
     size_t free_heap = ESP.getFreeHeap();
