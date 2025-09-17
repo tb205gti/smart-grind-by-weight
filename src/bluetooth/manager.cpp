@@ -134,7 +134,6 @@ void BluetoothManager::enable(unsigned long timeout_ms) {
         BLE_OTA_STATUS_CHAR_UUID,
         BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
     );
-    ota_status_characteristic->addDescriptor(new BLE2902());
     delay(BLE_INIT_CHARACTERISTIC_DELAY_MS);
     
     build_number_characteristic = ota_service->createCharacteristic(
@@ -159,14 +158,12 @@ void BluetoothManager::enable(unsigned long timeout_ms) {
         BLE_DATA_TRANSFER_CHAR_UUID,
         BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
     );
-    data_transfer_characteristic->addDescriptor(new BLE2902());
     delay(BLE_INIT_CHARACTERISTIC_DELAY_MS);
     
     data_status_characteristic = data_service->createCharacteristic(
         BLE_DATA_STATUS_CHAR_UUID,
         BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
     );
-    data_status_characteristic->addDescriptor(new BLE2902());
     delay(BLE_INIT_CHARACTERISTIC_DELAY_MS);
     
     // Create debug service (Nordic UART)
@@ -184,7 +181,6 @@ void BluetoothManager::enable(unsigned long timeout_ms) {
         BLE_DEBUG_TX_CHAR_UUID,
         BLECharacteristic::PROPERTY_NOTIFY
     );
-    debug_tx_characteristic->addDescriptor(new BLE2902());
     delay(BLE_INIT_CHARACTERISTIC_DELAY_MS);
     
     // Create system info service
@@ -195,28 +191,24 @@ void BluetoothManager::enable(unsigned long timeout_ms) {
         BLE_SYSINFO_SYSTEM_CHAR_UUID,
         BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
     );
-    sysinfo_system_characteristic->addDescriptor(new BLE2902());
     delay(BLE_INIT_CHARACTERISTIC_DELAY_MS);
     
     sysinfo_performance_characteristic = sysinfo_service->createCharacteristic(
         BLE_SYSINFO_PERFORMANCE_CHAR_UUID,
         BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
     );
-    sysinfo_performance_characteristic->addDescriptor(new BLE2902());
     delay(BLE_INIT_CHARACTERISTIC_DELAY_MS);
     
     sysinfo_hardware_characteristic = sysinfo_service->createCharacteristic(
         BLE_SYSINFO_HARDWARE_CHAR_UUID,
         BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
     );
-    sysinfo_hardware_characteristic->addDescriptor(new BLE2902());
     delay(BLE_INIT_CHARACTERISTIC_DELAY_MS);
     
     sysinfo_sessions_characteristic = sysinfo_service->createCharacteristic(
         BLE_SYSINFO_SESSIONS_CHAR_UUID,
         BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
     );
-    sysinfo_sessions_characteristic->addDescriptor(new BLE2902());
     delay(BLE_INIT_CHARACTERISTIC_DELAY_MS);
     
     ota_service->start();

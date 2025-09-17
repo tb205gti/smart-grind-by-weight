@@ -150,7 +150,7 @@ void GrindController::update() {
     if (!is_active()) return;
     
     // Increment loop counter for current phase performance tracking
-    current_phase_loop_count++;
+    current_phase_loop_count = current_phase_loop_count + 1;
     
     unsigned long now = millis();
     
