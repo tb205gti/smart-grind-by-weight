@@ -4,16 +4,24 @@ ESP32-S3 intelligent coffee scale with grind-by-weight functionality. Features p
 
 ## Essential Commands
 
-All development tasks use the unified `./tools/grinder` script:
+All development tasks use the unified cross-platform Python tool:
 
 ```bash
 # Build and upload
-./tools/grinder build-upload
+python3 tools/grinder.py build-upload
 
-# Data analysis (exports data and launches Streamlit report)
-./tools/grinder analyze
-
+# Data analysis (exports data and launches Streamlit report)  
+python3 tools/grinder.py analyze
 ```
+
+**Common Commands:**
+- `python3 tools/grinder.py build` - Build firmware only
+- `python3 tools/grinder.py upload` - Upload latest firmware via BLE
+- `python3 tools/grinder.py export` - Export grind data to database
+- `python3 tools/grinder.py report` - Launch Streamlit report from existing data
+- `python3 tools/grinder.py scan` - Scan for BLE devices
+- `python3 tools/grinder.py info` - Get device system information
+- `python3 tools/grinder.py clean` - Clean build artifacts
 
 ## Architecture
 

@@ -131,25 +131,24 @@ The platform dependency is automatically handled by PlatformIO via the `platform
 
 ### Initial USB Flashing
 ```bash
-# Install Python dependencies
-python3 -m venv tools/venv
-tools/venv/bin/pip install -r tools/requirements.txt
+# Install Python dependencies (auto-handled by grinder tool)
+python3 tools/grinder.py install
 
-# Build and upload via USB  
-./tools/grinder build
+# Build and upload via USB
+python3 tools/grinder.py build
 pio run --target upload -e waveshare-esp32s3-touch-amoled-164
 ```
 
 ### BLE OTA Updates (After Initial Setup)
 ```bash
-# Build firmware and upload wirelessly  
-./tools/grinder build-upload
+# Build firmware and upload wirelessly
+python3 tools/grinder.py build-upload
 
 # Or upload specific firmware
-./tools/grinder upload path/to/firmware.bin
+python3 tools/grinder.py upload path/to/firmware.bin
 
 # Force full firmware update (skip delta patching)
-./tools/grinder build-upload --force-full
+python3 tools/grinder.py build-upload --force-full
 ```
 
 ---
@@ -268,24 +267,24 @@ During Grinding:
 ### Launch Interactive Dashboard
 ```bash
 # Export data and launch Streamlit dashboard
-./tools/grinder analyze
+python3 tools/grinder.py analyze
 
-# Or view reports from existing data  
-./tools/grinder report
+# Or view reports from existing data
+python3 tools/grinder.py report
 ```
 
 ### Available Tools
 ```bash
-./tools/grinder --help          # Show all available commands
-./tools/grinder scan            # Scan for BLE devices
-./tools/grinder connect         # Connect to grinder device  
-./tools/grinder debug           # Stream live debug logs
-./tools/grinder info            # Get device system information
-./tools/grinder export          # Export grind data to database
+python3 tools/grinder.py --help          # Show all available commands
+python3 tools/grinder.py scan            # Scan for BLE devices
+python3 tools/grinder.py connect         # Connect to grinder device  
+python3 tools/grinder.py debug           # Stream live debug logs
+python3 tools/grinder.py info            # Get device system information
+python3 tools/grinder.py export          # Export grind data to database
 ```
 
 ### Tools Directory Structure
-- **`grinder`**: Unified script for all operations (build, upload, analyze)
+- **`grinder.py`**: Cross-platform Python tool for all operations (build, upload, analyze)
 - **`ble/`**: BLE communication tools and OTA update system
 - **`streamlit-reports/`**: Interactive data visualization and analytics
 - **`database/`**: SQLite database management for grind session storage

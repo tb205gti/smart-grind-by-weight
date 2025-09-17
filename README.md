@@ -61,7 +61,7 @@ flowchart LR
 Export your grind data and analyze it with the included Streamlit dashboard:
 
 ```bash
-./tools/grinder analyze
+python3 tools/grinder.py analyze
 ```
 
 Track accuracy, flow rates, grind times, and optimize your coffee workflow with detailed session analytics.
