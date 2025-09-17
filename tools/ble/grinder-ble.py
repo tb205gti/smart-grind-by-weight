@@ -242,7 +242,7 @@ class GrinderBLETool:
                 self.last_debug_flush = current_time
                 
         except Exception as e:
-            print(f"\n[DEBUG HANDLER ERROR: {e}]", file=sys.stderr)
+            print(f"\n[Debug handler error: {e}]", file=sys.stderr)
     
     async def on_data_status(self, _: BleakGATTCharacteristic, data: bytearray):
         if not data: return
@@ -459,11 +459,15 @@ class GrinderBLETool:
         
         # Step 1: Get the list of available session files
         print("📋 Requesting session file list...")
-        await self.client.write_gatt_char(BLE_DATA_CONTROL_CHAR_UUID, bytes([BLE_DATA_CMD_GET_FILE_LIST]))
         
-        # Wait for file list response
+        # Set up reception state BEFORE sending command to avoid race condition
         self.data_chunks = []
         self.receiving_data = True
+        
+        # Small delay to ensure the state is properly set
+        await asyncio.sleep(0.1)
+        
+        await self.client.write_gatt_char(BLE_DATA_CONTROL_CHAR_UUID, bytes([BLE_DATA_CMD_GET_FILE_LIST]))
         
         timeout_seconds = 10
         start_time = time.time()

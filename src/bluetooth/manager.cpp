@@ -548,6 +548,10 @@ void BluetoothManager::send_file_list() {
     
     free(session_ids);
     free(buffer);
+    
+    // Give the BLE buffer time to transmit the data before sending status
+    delay(100);
+    
     // Mark transfer complete so client stops waiting
     set_data_status(BLE_DATA_COMPLETE);
 }
