@@ -56,25 +56,34 @@ class GrinderTool:
         self.db_path = self.script_dir / "database" / "grinder_data.db"
         self.requirements_txt = self.script_dir / "requirements.txt"
     
+    def safe_print(self, text: str):
+        """Print text with proper encoding handling for all platforms."""
+        try:
+            print(text)
+        except UnicodeEncodeError:
+            # Replace problematic Unicode chars for Windows
+            safe_text = text.encode('ascii', 'replace').decode('ascii')
+            print(safe_text)
+    
     def print_header(self, message: str):
         """Print a formatted header."""
-        print(f"{COLORS['BLUE']}━━━ {message} ━━━{COLORS['RESET']}")
+        self.safe_print(f"{COLORS['BLUE']}=== {message} ==={COLORS['RESET']}")
     
     def print_success(self, message: str):
         """Print a success message."""
-        print(f"{COLORS['GREEN']}✅ {message}{COLORS['RESET']}")
+        self.safe_print(f"{COLORS['GREEN']}[OK] {message}{COLORS['RESET']}")
     
     def print_error(self, message: str):
         """Print an error message."""
-        print(f"{COLORS['RED']}❌ {message}{COLORS['RESET']}")
+        self.safe_print(f"{COLORS['RED']}[ERROR] {message}{COLORS['RESET']}")
     
     def print_warning(self, message: str):
         """Print a warning message."""
-        print(f"{COLORS['YELLOW']}⚠️  {message}{COLORS['RESET']}")
+        self.safe_print(f"{COLORS['YELLOW']}[WARNING] {message}{COLORS['RESET']}")
     
     def print_info(self, message: str):
         """Print an info message."""
-        print(f"{COLORS['CYAN']}ℹ️  {message}{COLORS['RESET']}")
+        self.safe_print(f"{COLORS['CYAN']}[INFO] {message}{COLORS['RESET']}")
     
     def check_venv(self) -> bool:
         """Check if virtual environment exists and is properly set up."""

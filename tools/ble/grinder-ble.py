@@ -40,7 +40,7 @@ try:
     from bleak.backends.characteristic import BleakGATTCharacteristic
     from bleak.backends.device import BLEDevice
 except ImportError:
-    print("❌ Required package 'bleak' not found.")
+    print("[ERROR] Required package 'bleak' not found.")
     print("Install with: pip3 install bleak --user")
     sys.exit(1)
 
@@ -125,7 +125,7 @@ class GrinderBLETool:
         for build_dir in build_dirs:
             firmware_path = build_dir / "firmware.bin"
             if firmware_path.exists():
-                print(f"📦 Auto-detected firmware: {firmware_path}")
+                self.safe_print(f"[INFO] Auto-detected firmware: {firmware_path}")
                 return str(firmware_path)
         
         pio_build_dir = project_root / ".pio" / "build"
@@ -134,18 +134,33 @@ class GrinderBLETool:
                 if env_dir.is_dir():
                     firmware_path = env_dir / "firmware.bin"
                     if firmware_path.exists():
-                        print(f"📦 Auto-detected firmware: {firmware_path}")
+                        self.safe_print(f"[INFO] Auto-detected firmware: {firmware_path}")
                         return str(firmware_path)
         
         return None
     
     def _update_status(self, message: str):
-        sys.stdout.write(f"\r\033[K{message}")
-        sys.stdout.flush()
+        # Safe print that handles Unicode encoding issues on Windows
+        try:
+            sys.stdout.write(f"\r\033[K{message}")
+            sys.stdout.flush()
+        except UnicodeEncodeError:
+            # Fallback for Windows console encoding issues
+            safe_message = message.encode('ascii', 'replace').decode('ascii')
+            sys.stdout.write(f"\r\033[K{safe_message}")
+            sys.stdout.flush()
+    
+    def safe_print(self, message: str):
+        """Print with encoding safety for Windows."""
+        try:
+            print(message)
+        except UnicodeEncodeError:
+            safe_message = message.encode('ascii', 'replace').decode('ascii')
+            print(safe_message)
     
     # === Device Discovery ===
     async def scan_devices(self) -> List[BLEDevice]:
-        print("🔍 Scanning for grinder devices...")
+        self.safe_print("[INFO] Scanning for grinder devices...")
         try:
             devices_with_adv = await BleakScanner.discover(timeout=10, return_adv=True)
             grinder_devices = []
@@ -153,17 +168,17 @@ class GrinderBLETool:
             for device, adv_data in devices_with_adv.values():
                 if device.name and "grind" in device.name.lower():
                     grinder_devices.append(device)
-                print(f"   📱 Found: {device.name} ({device.address}) - RSSI: {adv_data.rssi} dBm")
+                self.safe_print(f"   [DEVICE] Found: {device.name} ({device.address}) - RSSI: {adv_data.rssi} dBm")
             
             if not grinder_devices:
-                print("❌ No grinder devices found.")
+                self.safe_print("[ERROR] No grinder devices found.")
             return grinder_devices
         except Exception as e:
-            print(f"❌ Scan error: {e}")
+            self.safe_print(f"[ERROR] Scan error: {e}")
             return []
     
     async def find_device(self, device_name: str = DEVICE_NAME, timeout: int = 10) -> Optional[str]:
-        print(f"🔍 Scanning for {device_name}...")
+        self.safe_print(f"[INFO] Scanning for {device_name}...")
         try:
             devices_with_adv = await asyncio.wait_for(
                 BleakScanner.discover(timeout=timeout, return_adv=True),
@@ -171,12 +186,12 @@ class GrinderBLETool:
             )
             for device, adv_data in devices_with_adv.values():
                 if device.name == device_name:
-                    print(f"✅ Found {device_name}")
+                    self.safe_print(f"[OK] Found {device_name}")
                     return device.address
-            print(f"❌ {device_name} not found")
+            self.safe_print(f"[ERROR] {device_name} not found")
             return None
         except asyncio.TimeoutError:
-            print(f"❌ Scan timeout")
+            self.safe_print(f"[ERROR] Scan timeout")
             return None
     
     # === Connection Management ===
@@ -191,10 +206,10 @@ class GrinderBLETool:
             await asyncio.wait_for(self.client.connect(), timeout=10)
             
             if not self.client.is_connected:
-                print("❌ Connection failed")
+                self.safe_print("[ERROR] Connection failed")
                 return False
             
-            print(f"✅ Connected")
+            self.safe_print(f"[OK] Connected")
             
             await self.client.start_notify(BLE_OTA_STATUS_CHAR_UUID, self.on_ota_status)
             await self.client.start_notify(BLE_DATA_TRANSFER_CHAR_UUID, self.on_data_received)
@@ -205,7 +220,7 @@ class GrinderBLETool:
             await asyncio.sleep(0.5)
             return True
         except Exception as e:
-            print(f"❌ Connection error: {e}")
+            self.safe_print(f"[ERROR] Connection error: {e}")
             return False
     
     async def disconnect(self):
@@ -213,9 +228,9 @@ class GrinderBLETool:
             try:
                 await self.client.disconnect()
                 self.connected = False
-                print("👋 Disconnected")
+                self.safe_print("[INFO] Disconnected")
             except Exception as e:
-                print(f"⚠️ Disconnect error: {e}")
+                self.safe_print(f"[WARNING] Disconnect error: {e}")
     
     # === Notification Handlers ===
     async def on_ota_status(self, _: BleakGATTCharacteristic, data: bytearray):
@@ -254,17 +269,17 @@ class GrinderBLETool:
             # Otherwise let client-side progress tracking handle it
             progress = data[1] if len(data) > 1 else 0
             if progress > 0:
-                self._update_status(f"📤 exporting data... ({progress}%)")
+                self._update_status(f"[EXPORT] exporting data... ({progress}%)")
         elif status == BLE_DATA_COMPLETE:
             self.receiving_data = False
-            self._update_status("📤 exporting data... (100%)")
-            print("\n✅ Data export complete.")
+            self._update_status("[EXPORT] exporting data... (100%)")
+            self.safe_print("\n[OK] Data export complete.")
         elif status == BLE_DATA_ERROR:
             self.receiving_data = False
-            print("\n❌ Grinder reported an error during export.")
+            self.safe_print("\n[ERROR] Grinder reported an error during export.")
         elif len(data) == 2:
             self.session_count = data[0] | (data[1] << 8)
-            print(f"📊 Grinder has {self.session_count} sessions stored.")
+            self.safe_print(f"[INFO] Grinder has {self.session_count} sessions stored.")
     
     async def wait_for_ota_status(self, expected_status: int, timeout: int = 30) -> bool:
         start_time = time.time()
@@ -351,7 +366,7 @@ class GrinderBLETool:
         
         with open(firmware_file, 'rb') as f: firmware_data = f.read()
         original_size = len(firmware_data)
-        print(f"📦 Firmware: {firmware_file.name} ({original_size//1024}KB)")
+        self.safe_print(f"[INFO] Firmware: {firmware_file.name} ({original_size//1024}KB)")
         
         # Get new firmware build number from git info
         new_build = self._get_firmware_build_number(firmware_path)
@@ -361,9 +376,9 @@ class GrinderBLETool:
         if not force_full:
             device_build = await self.get_device_build_number()
             if device_build:
-                print(f"📱 Current device build: #{device_build}")
+                self.safe_print(f"[INFO] Current device build: #{device_build}")
                 if new_build:
-                    print(f"🆕 Upgrading to build: #{new_build}")
+                    self.safe_print(f"[INFO] Upgrading to build: #{new_build}")
                 cached_firmware = self.find_cached_firmware(device_build)
                 if cached_firmware:
                     patch_data = self.generate_delta_patch(cached_firmware, firmware_data)
@@ -374,11 +389,11 @@ class GrinderBLETool:
             else: 
                 full_reason = "no device build info"
                 if new_build:
-                    print(f"🆕 Installing build: #{new_build}")
+                    self.safe_print(f"[INFO] Installing build: #{new_build}")
         else: 
             full_reason = "forced full update"
             if new_build:
-                print(f"🆕 Installing build: #{new_build}")
+                self.safe_print(f"[INFO] Installing build: #{new_build}")
         
         if not use_delta:
             with tempfile.NamedTemporaryFile() as empty_file:
@@ -397,9 +412,9 @@ class GrinderBLETool:
         patch_size = len(patch_data)
         if self.update_method == "delta":
             reduction = 100.0 * (1.0 - patch_size / self.firmware_size)
-            print(f"🔄 Delta update: {patch_size//1024}KB ({reduction:.0f}% smaller)")
+            self.safe_print(f"[INFO] Delta update: {patch_size//1024}KB ({reduction:.0f}% smaller)")
         else:
-            print(f"🔄 Full update: {patch_size//1024}KB ({self.full_reason})")
+            self.safe_print(f"[INFO] Full update: {patch_size//1024}KB ({self.full_reason})")
         
         # Protocol: [CMD][patch_size:4][is_full_update:1][build_number_length:1][build_number:N]
         start_data = struct.pack('<I', patch_size)
@@ -412,12 +427,12 @@ class GrinderBLETool:
             # Include expected build number length and string
             build_bytes = expected_build.encode('utf-8')
             start_data += struct.pack('<B', len(build_bytes)) + build_bytes
-            print(f"📋 Sending expected build number: #{expected_build}")
+            self.safe_print(f"[INFO] Sending expected build number: #{expected_build}")
         else:
             # No build number
             start_data += struct.pack('<B', 0)
             
-        print(f"📋 Sending {'full' if is_full_update else 'delta'} update flag")
+        self.safe_print(f"[INFO] Sending {'full' if is_full_update else 'delta'} update flag")
         await self.client.write_gatt_char(BLE_OTA_CONTROL_CHAR_UUID, bytes([BLE_OTA_CMD_START]) + start_data)
         
         if not await self.wait_for_ota_status(BLE_OTA_RECEIVING, timeout=15): return False
@@ -429,14 +444,14 @@ class GrinderBLETool:
                 await self.client.write_gatt_char(BLE_OTA_DATA_CHAR_UUID, chunk)
                 progress = int(((i + len(chunk)) / patch_size) * 100)
                 if progress % 5 == 0:
-                    self._update_status(f"📤 Uploading: {progress}%")
+                    self._update_status(f"[UPLOAD] Uploading: {progress}%")
                 await asyncio.sleep(0.01)
         except Exception:
             await self.client.write_gatt_char(BLE_OTA_CONTROL_CHAR_UUID, bytes([BLE_OTA_CMD_ABORT]))
             return False
         
-        print(f"\n✅ Upload complete in {time.time() - start_time:.1f}s")
-        print("🔄 Applying update...")
+        self.safe_print(f"\n[OK] Upload complete in {time.time() - start_time:.1f}s")
+        self.safe_print("[INFO] Applying update...")
         try:
             await self.client.write_gatt_char(BLE_OTA_CONTROL_CHAR_UUID, bytes([BLE_OTA_CMD_END]))
             return await self.wait_for_ota_status(BLE_OTA_SUCCESS, timeout=30)
@@ -455,10 +470,10 @@ class GrinderBLETool:
             tools_dir = Path(__file__).parent.parent
             db_path = str(tools_dir / "database" / "grinder_data.db")
         
-        print("📊 Starting per-file data export...")
+        self.safe_print("[INFO] Starting per-file data export...")
         
         # Step 1: Get the list of available session files
-        print("📋 Requesting session file list...")
+        self.safe_print("[INFO] Requesting session file list...")
         
         # Set up reception state BEFORE sending command to avoid race condition
         self.data_chunks = []
@@ -475,25 +490,25 @@ class GrinderBLETool:
             await asyncio.sleep(0.1)
         
         if self.receiving_data:
-            print("⏰ Timeout waiting for file list")
+            self.safe_print("[ERROR] Timeout waiting for file list")
             return False
         
         if not self.data_chunks:
-            print("❌ No file list received")
+            self.safe_print("[ERROR] No file list received")
             return False
         
         # Parse file list: [session_count:4][session_id1:4][session_id2:4]...
         file_list_data = b"".join(self.data_chunks)
         if len(file_list_data) < 4:
-            print("❌ Invalid file list data")
+            self.safe_print("[ERROR] Invalid file list data")
             return False
         
         session_count = struct.unpack('<I', file_list_data[:4])[0]
         if session_count == 0:
-            print("✅ No sessions to export")
+            self.safe_print("[OK] No sessions to export")
             return True
         
-        print(f"📂 Found {session_count} session files to export")
+        self.safe_print(f"[INFO] Found {session_count} session files to export")
         
         # Extract session IDs
         session_ids = []
@@ -503,7 +518,7 @@ class GrinderBLETool:
                 session_id = struct.unpack('<I', file_list_data[offset:offset+4])[0]
                 session_ids.append(session_id)
         
-        print(f"📝 Session IDs: {session_ids}")
+        self.safe_print(f"[INFO] Session IDs: {session_ids}")
         
         # Step 2: Request each file individually and process it
         all_sessions = []
@@ -511,7 +526,7 @@ class GrinderBLETool:
         all_measurements = []
         
         for i, session_id in enumerate(session_ids):
-            print(f"📤 Requesting session file {session_id} ({i+1}/{len(session_ids)})")
+            self.safe_print(f"[INFO] Requesting session file {session_id} ({i+1}/{len(session_ids)})")
             
             # Request individual file
             request_data = bytes([BLE_DATA_CMD_REQUEST_FILE]) + struct.pack('<I', session_id)
@@ -528,41 +543,41 @@ class GrinderBLETool:
                 await asyncio.sleep(0.1)
             
             if self.receiving_data:
-                print(f"⏰ Timeout waiting for session file {session_id}")
+                self.safe_print(f"[ERROR] Timeout waiting for session file {session_id}")
                 continue
             
             if not self.data_chunks:
-                print(f"❌ No data received for session {session_id}")
+                self.safe_print(f"[ERROR] No data received for session {session_id}")
                 continue
             
             # Process individual file
             try:
                 file_data = b"".join(self.data_chunks)
-                print(f"📦 Received {len(file_data)} bytes for session {session_id}")
+                self.safe_print(f"[INFO] Received {len(file_data)} bytes for session {session_id}")
                 
                 # Parse this single session file
                 sessions, events, measurements = self._parse_single_file_data(file_data, session_id)
                 all_sessions.extend(sessions)
                 all_events.extend(events) 
                 all_measurements.extend(measurements)
-                print(f"✅ Successfully processed session {session_id}")
+                self.safe_print(f"[OK] Successfully processed session {session_id}")
                 
             except Exception as e:
-                print(f"⚠️ Failed to process session {session_id}: {e}")
+                self.safe_print(f"[WARNING] Failed to process session {session_id}: {e}")
                 # Save corrupted file for debugging
                 with open(f"failed_session_{session_id}.bin", "wb") as f:
                     f.write(file_data)
-                print(f"📝 Saved corrupted session to failed_session_{session_id}.bin")
+                self.safe_print(f"[INFO] Saved corrupted session to failed_session_{session_id}.bin")
                 continue
         
         # Step 3: Store all successfully processed data
         if all_sessions:
-            print(f"\n📊 Storing data: {len(all_sessions)} sessions, {len(all_events)} events, {len(all_measurements)} measurements")
+            self.safe_print(f"\n[INFO] Storing data: {len(all_sessions)} sessions, {len(all_events)} events, {len(all_measurements)} measurements")
             self._store_data(all_sessions, all_events, all_measurements, db_path)
-            print("✅ Data export completed successfully!")
+            self.safe_print("[OK] Data export completed successfully!")
             return True
         else:
-            print("❌ No sessions were successfully processed")
+            self.safe_print("[ERROR] No sessions were successfully processed")
             return False
     
     def _parse_single_file_data(self, file_data: bytes, session_id: int) -> Tuple[List[Dict], List[Dict], List[Dict]]:
@@ -735,7 +750,7 @@ class GrinderBLETool:
         if len(measurements) > measurement_count:
             raise ValueError(f"Measurement count validation failed: processed {len(measurements)}, expected max {measurement_count}")
         
-        print(f"✓ Session {parsed_session_id} validation passed: {len(events)} events, {len(measurements)} measurements")
+        self.safe_print(f"[OK] Session {parsed_session_id} validation passed: {len(events)} events, {len(measurements)} measurements")
             
         return [session], events, measurements
     
@@ -809,21 +824,21 @@ class GrinderBLETool:
             # Relative path, resolve relative to tools directory
             db_full_path = tools_dir / db_path
         
-        print("📊 Starting data analysis workflow...")
+        self.safe_print("[INFO] Starting data analysis workflow...")
         
         if not skip_export:
             # First, export the data
             if not await self.export_data(str(db_full_path)):
-                print("❌ Data export failed, cannot launch report")
+                self.safe_print("[ERROR] Data export failed, cannot launch report")
                 return False
             
             # Close BLE connection after successful data export
-            print("🔌 Closing BLE connection...")
+            self.safe_print("[INFO] Closing BLE connection...")
             await self.disconnect()
         else:
-            print("⏭️ Skipping data export, using existing database")
+            self.safe_print("[INFO] Skipping data export, using existing database")
         
-        print("🚀 Launching Streamlit report...")
+        self.safe_print("[INFO] Launching Streamlit report...")
         
         # Change to streamlit-reports directory and launch streamlit
         try:
@@ -832,16 +847,16 @@ class GrinderBLETool:
             venv_streamlit = tools_dir / "venv" / "bin" / "streamlit"
             
             if not venv_streamlit.exists():
-                print("❌ Streamlit not found in venv. Installing...")
+                self.safe_print("[INFO] Streamlit not found in venv. Installing...")
                 result = subprocess.run([str(venv_python), "-m", "pip", "install", "streamlit>=1.28.0", "plotly>=5.15.0"], 
                                       capture_output=True, text=True)
                 if result.returncode != 0:
-                    print(f"❌ Failed to install Streamlit: {result.stderr}")
+                    self.safe_print(f"[ERROR] Failed to install Streamlit: {result.stderr}")
                     return False
             
-            print(f"📈 Opening report at http://localhost:8501")
-            print(f"📄 Using database: {db_full_path}")
-            print(f"🛑 Press Ctrl+C to stop the server")
+            self.safe_print(f"[INFO] Opening report at http://localhost:8501")
+            self.safe_print(f"[INFO] Using database: {db_full_path}")
+            self.safe_print(f"[INFO] Press Ctrl+C to stop the server")
             
             # Launch streamlit in the reports directory with proper environment
             os.chdir(str(streamlit_dir))
@@ -853,8 +868,8 @@ class GrinderBLETool:
             subprocess.run([str(venv_python), "-m", "streamlit", "run", "grind_report.py"], env=env_vars)
             
         except Exception as e:
-            print(f"❌ Failed to launch Streamlit report: {e}")
-            print("💡 You can manually run: streamlit run tools/streamlit-reports/grind_report.py")
+            self.safe_print(f"[ERROR] Failed to launch Streamlit report: {e}")
+            self.safe_print("[INFO] You can manually run: streamlit run tools/streamlit-reports/grind_report.py")
             return False
         
         return True
@@ -862,12 +877,12 @@ class GrinderBLETool:
     # === Debug Monitor ===
     async def debug_monitor(self):
         """Connect and display live debug messages from the grinder."""
-        print("📡 Enabling debug stream...")
+        self.safe_print("[INFO] Enabling debug stream...")
         
         try:
             # Enable debug stream on the device
             await self.client.write_gatt_char(BLE_DEBUG_RX_CHAR_UUID, bytes([BLE_DEBUG_CMD_ENABLE]))
-            print("✅ Debug stream active. Press Ctrl+C to exit.")
+            self.safe_print("[OK] Debug stream active. Press Ctrl+C to exit.")
             
             # Keep the script alive to receive notifications
             while self.connected:
@@ -881,12 +896,12 @@ class GrinderBLETool:
                 sys.stdout.flush()
                 self.debug_buffer = ""
                 
-            print("\n🔌 Disabling debug stream...")
+            self.safe_print("\n[INFO] Disabling debug stream...")
             if self.client and self.client.is_connected:
                 try:
                     await self.client.write_gatt_char(BLE_DEBUG_RX_CHAR_UUID, bytes([BLE_DEBUG_CMD_DISABLE]))
                 except BleakError as e:
-                    print(f"⚠️  Could not disable debug stream cleanly: {e}")
+                    self.safe_print(f"[WARNING] Could not disable debug stream cleanly: {e}")
     
     # === System Information Functions ===
     async def get_system_info(self) -> Dict:
@@ -909,13 +924,13 @@ class GrinderBLETool:
                 'sessions': sessions_info
             }
         except Exception as e:
-            print(f"❌ Error reading system info: {e}")
+            self.safe_print(f"[ERROR] Error reading system info: {e}")
             return {}
     
     def print_system_info(self, info: Dict):
         """Print formatted system information."""
         if not info:
-            print("❌ No system information available")
+            self.safe_print("[ERROR] No system information available")
             return
         
         system = info.get('system', {})
@@ -923,60 +938,60 @@ class GrinderBLETool:
         hardware = info.get('hardware', {})
         sessions = info.get('sessions', {})
         
-        print("\n" + "="*60)
-        print("📊 GRINDER SYSTEM INFORMATION")
-        print("="*60)
+        self.safe_print("\n" + "="*60)
+        self.safe_print("[SYSTEM] GRINDER SYSTEM INFORMATION")
+        self.safe_print("="*60)
         
         # System Information
-        print(f"📦 FIRMWARE:")
-        print(f"   Version:      {system.get('version', 'Unknown')}")
-        print(f"   Build:        #{system.get('build', 'Unknown')}")
-        print(f"   Uptime:       {system.get('uptime_h', 0):02d}:{system.get('uptime_m', 0):02d}:{system.get('uptime_s', 0):02d}")
-        print(f"   CPU Freq:     {system.get('cpu_freq', 'Unknown')} MHz")
+        self.safe_print(f"[FIRMWARE]:")
+        self.safe_print(f"   Version:      {system.get('version', 'Unknown')}")
+        self.safe_print(f"   Build:        #{system.get('build', 'Unknown')}")
+        self.safe_print(f"   Uptime:       {system.get('uptime_h', 0):02d}:{system.get('uptime_m', 0):02d}:{system.get('uptime_s', 0):02d}")
+        self.safe_print(f"   CPU Freq:     {system.get('cpu_freq', 'Unknown')} MHz")
         
         # Memory Information  
-        print(f"💾 MEMORY:")
+        self.safe_print(f"[MEMORY]:")
         heap_free = system.get('heap_free', 0)
         heap_total = system.get('heap_total', 0)
         flash_size = system.get('flash_size', 0)
         heap_used_pct = system.get('heap_used_pct', 0)
-        print(f"   Heap Free:    {heap_free//1024:,} KB")
-        print(f"   Heap Total:   {heap_total//1024:,} KB")
-        print(f"   Heap Used:    {heap_used_pct:.1f}%")
-        print(f"   Flash Size:   {flash_size//1024//1024:,} MB")
+        self.safe_print(f"   Heap Free:    {heap_free//1024:,} KB")
+        self.safe_print(f"   Heap Total:   {heap_total//1024:,} KB")
+        self.safe_print(f"   Heap Used:    {heap_used_pct:.1f}%")
+        self.safe_print(f"   Flash Size:   {flash_size//1024//1024:,} MB")
         
         # Performance Information
-        print(f"⚡ PERFORMANCE:")
-        print(f"   System:       {'✅ Healthy' if performance.get('system_healthy') else '❌ Stressed'}")
-        print(f"   Tasks:        {performance.get('tasks_registered', 0)} registered")
-        print(f"   Load Cell:    {performance.get('load_cell_freq_hz', 0)} Hz")
-        print(f"   Grind Ctrl:   {performance.get('grind_control_freq_hz', 0)} Hz")
-        print(f"   UI Updates:   {performance.get('ui_freq_hz', 0)} Hz")
+        self.safe_print(f"[PERFORMANCE]:")
+        self.safe_print(f"   System:       {'[HEALTHY]' if performance.get('system_healthy') else '[STRESSED]'}")
+        self.safe_print(f"   Tasks:        {performance.get('tasks_registered', 0)} registered")
+        self.safe_print(f"   Load Cell:    {performance.get('load_cell_freq_hz', 0)} Hz")
+        self.safe_print(f"   Grind Ctrl:   {performance.get('grind_control_freq_hz', 0)} Hz")
+        self.safe_print(f"   UI Updates:   {performance.get('ui_freq_hz', 0)} Hz")
         
         # Hardware Status
-        print(f"🔧 HARDWARE:")
+        self.safe_print(f"[HARDWARE]:")
         hw_status = []
-        if hardware.get('load_cell_active'): hw_status.append("✅ Load Cell")
-        if hardware.get('motor_available'): hw_status.append("✅ Motor")
-        if hardware.get('display_active'): hw_status.append("✅ Display")
-        if hardware.get('touch_active'): hw_status.append("✅ Touch")
-        if hardware.get('ble_enabled'): hw_status.append("✅ Bluetooth")
-        if not hardware.get('wifi_available'): hw_status.append("❌ WiFi")
+        if hardware.get('load_cell_active'): hw_status.append("[OK] Load Cell")
+        if hardware.get('motor_available'): hw_status.append("[OK] Motor")
+        if hardware.get('display_active'): hw_status.append("[OK] Display")
+        if hardware.get('touch_active'): hw_status.append("[OK] Touch")
+        if hardware.get('ble_enabled'): hw_status.append("[OK] Bluetooth")
+        if not hardware.get('wifi_available'): hw_status.append("[ERROR] WiFi")
         
-        print(f"   Status:       {', '.join(hw_status)}")
+        self.safe_print(f"   Status:       {', '.join(hw_status)}")
         
         # Session Statistics
-        print(f"📈 SESSION DATA:")
+        self.safe_print(f"[SESSION DATA]:")
         total_sessions = sessions.get('total_sessions', 0)
-        print(f"   Total:        {total_sessions} sessions")
-        print(f"   Data Avail:   {'✅ Yes' if sessions.get('data_available') else '❌ No'}")
-        print(f"   Export:       {'🔄 Active' if sessions.get('export_active') else '⏸️  Idle'}")
+        self.safe_print(f"   Total:        {total_sessions} sessions")
+        self.safe_print(f"   Data Avail:   {'[YES]' if sessions.get('data_available') else '[NO]'}")
+        self.safe_print(f"   Export:       {'[ACTIVE]' if sessions.get('export_active') else '[IDLE]'}")
         
-        print("="*60 + "\n")
+        self.safe_print("="*60 + "\n")
 
     # === Interactive Mode (Unchanged) ===
     async def interactive_session(self):
-        print("\n🎛️ Interactive Session (type 'help' for commands)")
+        self.safe_print("\n[INFO] Interactive Session (type 'help' for commands)")
         while self.connected:
             try:
                 cmd = input("> ").strip().lower()
@@ -989,14 +1004,14 @@ class GrinderBLETool:
                     await self.export_data()
                 elif cmd == "clear":
                     await self.client.write_gatt_char(BLE_DATA_CONTROL_CHAR_UUID, bytes([BLE_DATA_CMD_CLEAR_DATA]))
-                    print("✅ Data cleared")
+                    self.safe_print("[OK] Data cleared")
                 elif cmd == "status":
                     print(f"Connected: {self.connected}")
                 elif cmd == "sysinfo":
                     info = await self.get_system_info()
                     self.print_system_info(info)
                 elif cmd:
-                    print(f"Unknown command: {cmd}")
+                    self.safe_print(f"[ERROR] Unknown command: {cmd}")
             except (KeyboardInterrupt, EOFError):
                 break
         await self.disconnect()
@@ -1033,7 +1048,7 @@ async def main():
             if args.command == 'upload':
                 firmware_path = args.firmware or tool.find_firmware_file()
                 if not firmware_path:
-                    print("❌ No firmware file found.")
+                    self.safe_print("[ERROR] No firmware file found.")
                     return 1
                 await tool.upload_firmware(firmware_path, args.force_full)
             elif args.command == 'export':
@@ -1043,7 +1058,7 @@ async def main():
                 # analyze_data handles its own disconnection after data export
                 return 0
             elif args.command == 'connect':
-                print("✅ Connected to device.")
+                self.safe_print("[OK] Connected to device.")
             elif args.command == 'debug':
                 await tool.debug_monitor()
             elif args.command == 'info':
@@ -1053,7 +1068,7 @@ async def main():
             await tool.disconnect()
             
     except KeyboardInterrupt:
-        print("\n🛑 Interrupted by user")
+        self.safe_print("\n[INFO] Interrupted by user")
     finally:
         if tool.connected: await tool.disconnect()
 
@@ -1061,5 +1076,5 @@ if __name__ == "__main__":
     try:
         sys.exit(asyncio.run(main()))
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        print(f"[ERROR] An unexpected error occurred: {e}")
         sys.exit(1)
