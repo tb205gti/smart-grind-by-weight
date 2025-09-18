@@ -842,9 +842,15 @@ class GrinderBLETool:
         
         # Change to streamlit-reports directory and launch streamlit
         try:
-            # Use the venv python to ensure all dependencies are available
-            venv_python = tools_dir / "venv" / "bin" / "python"
-            venv_streamlit = tools_dir / "venv" / "bin" / "streamlit"
+            # Platform-specific venv paths (same logic as main grinder tool)
+            import platform
+            venv_dir = tools_dir / "venv"
+            if platform.system() == "Windows":
+                venv_python = venv_dir / "Scripts" / "python.exe"
+                venv_streamlit = venv_dir / "Scripts" / "streamlit.exe"
+            else:
+                venv_python = venv_dir / "bin" / "python"
+                venv_streamlit = venv_dir / "bin" / "streamlit"
             
             if not venv_streamlit.exists():
                 self.safe_print("[INFO] Streamlit not found in venv. Installing...")
