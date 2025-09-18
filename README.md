@@ -91,3 +91,5 @@ In this project, that's most obvious when looking at the UI and state management
 **Project Status**: This project is shared 'as-is' and I have limited availability for support. While I'm happy to share what I've built, please understand that troubleshooting and feature requests may receive limited attention.
 
 **Want to dive deeper?** → Check out **[DOC.md](DOC.md)** for comprehensive documentation.
+
+**Having issues?** → See **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** for common problems and solutions.

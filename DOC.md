@@ -17,6 +17,7 @@ Complete build instructions, parts list, and usage guide for the Smart Grind-by-
 - [Analytics & Data Export](#-analytics--data-export)
 - [Algorithm Details](#-algorithm-details)
 - [Frequently Asked Questions](#-frequently-asked-questions)
+- [Troubleshooting](#-troubleshooting)
 
 ---
 
@@ -36,7 +37,7 @@ Complete build instructions, parts list, and usage guide for the Smart Grind-by-
 - **Angled pin headers** (not the straight kind)
 - **JST-PH 4 pin male connector** (optional - if you don't want to solder to Eureka)
 
-[<img src="images/waveshare%20board%20wired%20up%201.jpg" alt="Wired Waveshare Board" width="30%">](images/waveshare%20board%20wired%20up%201.jpg)
+[<img src="images/waveshare_board_wired_up_1.jpg" alt="Wired Waveshare Board" width="30%">](images/waveshare_board_wired_up_1.jpg)
 
 ### 3D Printed Parts
 
@@ -77,20 +78,27 @@ ESP32-S3 GND       →    HX711 GND
 ```
 
 **Eureka Mignon Connections:**
+
+⚠️ **CRITICAL WARNING:** Always verify your specific Eureka's wiring independently! Wire colors vary between units and cannot be trusted. Use the numbered pin positions shown in the reference image.
+
+Using the 4-pin Eureka plug pinout (see `images/4-pin_Eureka_plug_pinout.png`), counting from left to right with the plug oriented with 'ribs' towards you:
+
+[<img src="images/4-pin_Eureka_plug_pinout.png" alt="4-Pin Eureka Plug Pinout" width="50%">](images/4-pin_Eureka_plug_pinout.png)
+
 ```
-ESP32-S3 GPIO 18   →    WHITE wire (Motor control signal)
-ESP32-S3 GND       →    RED wire (⚠️ Ground - non-standard color!)
-ESP32-S3 5V        →    BLACK wire (⚠️ Power - non-standard color!)
-                        GRAY wire (Button signal - not used)
+ESP32-S3 5V        →    Pin 1 (5V power)
+                        Pin 2 (Button signal - not used in this project)
+ESP32-S3 GPIO 18   →    Pin 3 (Motor control signal)
+ESP32-S3 GND       →    Pin 4 (Ground)
 ```
 
-**Eureka 4-Pin Connector Reference:**
-- RED wire = GND (⚠️ non-standard!)
-- WHITE wire = Motor control signal  
-- GRAY wire = Button signal (unused in this project)
-- BLACK wire = 5V power (⚠️ non-standard!)
+**4-Pin Eureka Plug Reference (Left to Right):**
+- **Pin 1**: 5V power supply
+- **Pin 2**: Button signal (unused in this project)  
+- **Pin 3**: Motor control signal
+- **Pin 4**: Ground
 
-⚠️ **CRITICAL:** Eureka uses reversed wire colors - RED is ground, BLACK is power!
+⚠️ **VERIFICATION REQUIRED:** Before connecting, use a multimeter to verify your specific grinder's pin functions. Wire colors are unreliable and vary between units!
 
 ### Installation Steps
 
@@ -104,7 +112,7 @@ ESP32-S3 5V        →    BLACK wire (⚠️ Power - non-standard color!)
    - Disassemble top plate and front plate
    - Remove the button and store it (not needed)
    - Use JST-PH plug to connect to Waveshare board
-   - **WARNING:** In some Eureka units, wire colors to screen are REVERSED! Test first.
+   - **WARNING:** Wire colors vary significantly between Eureka units - always verify pin functions with a multimeter before connecting!
    - Mount Waveshare screen using 3D printed adapter where original screen was
    - Fish HX711 wire through housing, exit via button hole
    - Mount load cell and HX711 to 3D printed back plate
@@ -323,6 +331,17 @@ Yes, but you'll need to make modifications. Use a 1kg load cell instead of 0.3kg
 **What is the benefit of this mod for a single-dosing grinder like the Niche Zero?**
 
 It's about workflow optimization vs. ultimate precision. Benefits: easier workflow with no manual measuring, precise dose accounting for retention, consistent results. Downside: potential stale retention from previous grinds. Choose based on your goals - do you want optimized ease and consistency, or are you willing to accept daily complexity for that perfect shot? This mod strikes a balance toward maintainable workflow efficiency.
+
+---
+
+## 🔧 Troubleshooting
+
+For common build and setup issues, see **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** which covers:
+
+- Unknown board ID errors in PlatformIO
+- Project initialization issues with pioarduino platform
+- Platform package cache problems
+- Clean build procedures
 
 ---
 
