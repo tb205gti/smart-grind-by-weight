@@ -266,7 +266,7 @@ void SettingsScreen::create_settings_page(lv_obj_t* parent) {
 
     // Normal Brightness Slider
     lv_obj_t* brightness_normal_container = lv_obj_create(parent);
-    lv_obj_set_size(brightness_normal_container, 280, 100);
+    lv_obj_set_size(brightness_normal_container, 260, 104);
     lv_obj_set_layout(brightness_normal_container, LV_LAYOUT_FLEX);
     lv_obj_set_flex_flow(brightness_normal_container, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(brightness_normal_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -278,22 +278,21 @@ void SettingsScreen::create_settings_page(lv_obj_t* parent) {
 
     brightness_normal_label = lv_label_create(brightness_normal_container);
     lv_label_set_text(brightness_normal_label, "Brightness: 100%");
+    lv_obj_set_style_pad_bottom(brightness_normal_label, 4, 0);
     lv_obj_set_style_text_font(brightness_normal_label, &lv_font_montserrat_24, 0);
     lv_obj_set_style_text_color(brightness_normal_label, lv_color_hex(THEME_COLOR_TEXT_PRIMARY), 0);
 
     brightness_normal_slider = lv_slider_create(brightness_normal_container);
-    lv_obj_set_size(brightness_normal_slider, 240, 40);
-    lv_obj_set_style_pad_left(brightness_normal_slider, 10, 0);
-    lv_obj_set_style_pad_right(brightness_normal_slider, 10, 0);
+    lv_obj_set_size(brightness_normal_slider, 210, 40);
     lv_slider_set_range(brightness_normal_slider, 15, 100); // 15% minimum to prevent inoperability
     lv_slider_set_value(brightness_normal_slider, 100, LV_ANIM_OFF);
     lv_obj_set_style_bg_color(brightness_normal_slider, lv_color_hex(THEME_COLOR_BACKGROUND), LV_PART_MAIN);
     lv_obj_set_style_bg_color(brightness_normal_slider, lv_color_hex(THEME_COLOR_ACCENT), LV_PART_INDICATOR);
-    lv_obj_set_style_bg_color(brightness_normal_slider, lv_color_hex(THEME_COLOR_PRIMARY), LV_PART_KNOB);
+    lv_obj_set_style_bg_color(brightness_normal_slider, lv_color_hex(THEME_COLOR_TEXT_PRIMARY), LV_PART_KNOB);
 
     // Screensaver Brightness Slider
     lv_obj_t* brightness_screensaver_container = lv_obj_create(parent);
-    lv_obj_set_size(brightness_screensaver_container, 280, 100);
+    lv_obj_set_size(brightness_screensaver_container, 260, 104);
     lv_obj_set_layout(brightness_screensaver_container, LV_LAYOUT_FLEX);
     lv_obj_set_flex_flow(brightness_screensaver_container, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(brightness_screensaver_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -305,18 +304,17 @@ void SettingsScreen::create_settings_page(lv_obj_t* parent) {
 
     brightness_screensaver_label = lv_label_create(brightness_screensaver_container);
     lv_label_set_text(brightness_screensaver_label, "Dimmed: 35%");
+    lv_obj_set_style_pad_bottom(brightness_screensaver_label, 4, 0);
     lv_obj_set_style_text_font(brightness_screensaver_label, &lv_font_montserrat_24, 0);
     lv_obj_set_style_text_color(brightness_screensaver_label, lv_color_hex(THEME_COLOR_TEXT_PRIMARY), 0);
 
     brightness_screensaver_slider = lv_slider_create(brightness_screensaver_container);
-    lv_obj_set_size(brightness_screensaver_slider, 240, 40);
-    lv_obj_set_style_pad_left(brightness_screensaver_slider, 10, 0);
-    lv_obj_set_style_pad_right(brightness_screensaver_slider, 10, 0);
+    lv_obj_set_size(brightness_screensaver_slider, 210, 40);
     lv_slider_set_range(brightness_screensaver_slider, 15, 100); // 15% minimum to prevent inoperability
     lv_slider_set_value(brightness_screensaver_slider, 35, LV_ANIM_OFF);
     lv_obj_set_style_bg_color(brightness_screensaver_slider, lv_color_hex(THEME_COLOR_BACKGROUND), LV_PART_MAIN);
     lv_obj_set_style_bg_color(brightness_screensaver_slider, lv_color_hex(THEME_COLOR_WARNING), LV_PART_INDICATOR);
-    lv_obj_set_style_bg_color(brightness_screensaver_slider, lv_color_hex(THEME_COLOR_PRIMARY), LV_PART_KNOB);
+    lv_obj_set_style_bg_color(brightness_screensaver_slider, lv_color_hex(THEME_COLOR_TEXT_PRIMARY), LV_PART_KNOB);
 
 }
 
