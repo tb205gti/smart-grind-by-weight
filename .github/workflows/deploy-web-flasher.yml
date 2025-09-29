@@ -2,11 +2,9 @@ name: Deploy Web Flasher
 
 on:
   push:
-    tags:
-      - 'v*'  # Deploy on releases
     branches: [ main ]
     paths:
-      - 'tools/web-flasher/**'  # Also deploy when web-flasher files change
+      - 'tools/web-flasher/**'  # Deploy when web-flasher files change (after firmware commit)
   workflow_dispatch:
 
 permissions:
