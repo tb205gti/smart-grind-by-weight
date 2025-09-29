@@ -39,23 +39,23 @@ jobs:
         # Copy firmware binaries (only what users need for BLE OTA)
         find .pio/build -name "firmware.bin" -exec cp {} release-artifacts/ \;
         
-        # Copy latest firmware to tools/web-flasher for CORS-free hosting
+        # Copy versioned firmware to tools/web-flasher for CORS-free hosting
         mkdir -p tools/web-flasher/firmware
-        find .pio/build -name "firmware.bin" -exec cp {} tools/web-flasher/firmware/ \;
+        VERSION=${{ github.ref_name }}
         
-        # Generate web-specific OTA patch files (not included in release artifacts)
+        # Copy firmware with version in filename
+        find .pio/build -name "firmware.bin" -exec cp {} tools/web-flasher/firmware/firmware-${VERSION}.bin \;
+        
+        # Generate web-specific OTA patch files with version
         pip install detools
-        for firmware in tools/web-flasher/firmware/firmware.bin; do
-          if [ -f "$firmware" ]; then
-            echo "Generating web OTA patch for $firmware"
-            # Create empty file for delta base
-            touch empty.bin
-            # Generate compressed patch against empty file (web flasher only)
-            detools create_patch -c heatshrink empty.bin "$firmware" "${firmware%.bin}-web-ota.bin"
-            echo "Web OTA patch created: ${firmware%.bin}-web-ota.bin ($(du -h "${firmware%.bin}-web-ota.bin" | cut -f1))"
-            echo "This file is for web flasher only, not included in release artifacts"
-          fi
-        done
+        if [ -f "tools/web-flasher/firmware/firmware-${VERSION}.bin" ]; then
+          echo "Generating web OTA patch for firmware-${VERSION}.bin"
+          # Create empty file for delta base
+          touch empty.bin
+          # Generate compressed patch against empty file (web flasher only)
+          detools create_patch -c heatshrink empty.bin "tools/web-flasher/firmware/firmware-${VERSION}.bin" "tools/web-flasher/firmware/firmware-${VERSION}-web-ota.bin"
+          echo "Web OTA patch created: firmware-${VERSION}-web-ota.bin ($(du -h "tools/web-flasher/firmware/firmware-${VERSION}-web-ota.bin" | cut -f1))"
+        fi
         # Create a firmware package
         cd release-artifacts
         tar -czf firmware-${{ github.ref_name }}.tar.gz *.bin
@@ -71,9 +71,10 @@ jobs:
         git checkout main
         git pull origin main
         
-        # Copy the firmware files to the main branch
+        # Copy the versioned firmware files to the main branch
         mkdir -p tools/web-flasher/firmware
-        cp .pio/build/*/firmware.bin tools/web-flasher/firmware/ 2>/dev/null || true
+        VERSION=${{ github.ref_name }}
+        cp .pio/build/*/firmware.bin tools/web-flasher/firmware/firmware-${VERSION}.bin 2>/dev/null || true
         find . -name "*-web-ota.bin" -exec cp {} tools/web-flasher/firmware/ \; 2>/dev/null || true
         
         # Add the generated firmware files for web flasher

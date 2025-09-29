@@ -29,7 +29,7 @@ let otaService = null;
 let currentOtaStatus = BLE_OTA_IDLE;
 let statusCharacteristic = null;
 
-// Browser support check
+// Browser support check and load releases
 window.addEventListener('load', () => {
     if (!('bluetooth' in navigator)) {
         document.getElementById('browserWarning').style.display = 'block';
@@ -40,6 +40,9 @@ window.addEventListener('load', () => {
             otaTab.style.opacity = '0.5';
         }
     }
+    
+    // Load available releases
+    loadReleases();
 });
 
 // Tab switching
@@ -451,6 +454,88 @@ function updateFirmwareUrl() {
     }
 }
 
+
+// Load firmware files from directory
+async function loadReleases() {
+    const usbSelect = document.getElementById('usbFirmwareSelect');
+    const otaSelect = document.getElementById('firmwareSelect');
+    const showRC = document.getElementById('showReleaseCandidate').checked;
+    const showRCOTA = document.getElementById('showReleaseCandidateOTA').checked;
+    
+    try {
+        usbSelect.innerHTML = '<option value="">Loading firmware...</option>';
+        otaSelect.innerHTML = '<option value="">Loading firmware...</option>';
+        
+        // Fetch directory listing (this works on GitHub Pages)
+        const response = await fetch('firmware/');
+        const html = await response.text();
+        
+        // Parse HTML to extract firmware filenames
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const links = doc.querySelectorAll('a');
+        
+        const firmwareFiles = [];
+        links.forEach(link => {
+            const filename = link.getAttribute('href');
+            if (filename && filename.match(/^firmware-v[\d\.]+(.*)?\.bin$/)) {
+                firmwareFiles.push(filename);
+            }
+        });
+        
+        // Clear dropdowns
+        usbSelect.innerHTML = '';
+        otaSelect.innerHTML = '';
+        
+        // Sort files by version (newest first)
+        firmwareFiles.sort((a, b) => {
+            const versionA = a.match(/v([\d\.]+)/)?.[1] || '0';
+            const versionB = b.match(/v([\d\.]+)/)?.[1] || '0';
+            return versionB.localeCompare(versionA, undefined, { numeric: true });
+        });
+        
+        // Add firmware options
+        firmwareFiles.forEach(filename => {
+            const versionMatch = filename.match(/firmware-(v[\d\.]+(.*?))(\.bin|-web-ota\.bin)$/);
+            if (!versionMatch) return;
+            
+            const version = versionMatch[1];
+            const isPrerelease = version.includes('rc') || version.includes('beta') || version.includes('alpha');
+            const isOTA = filename.includes('-web-ota.bin');
+            
+            const label = isPrerelease ? `${version} (pre-release)` : version;
+            
+            if (isOTA) {
+                // Add to OTA dropdown if showRCOTA is checked or it's not a prerelease
+                if (!isPrerelease || showRCOTA) {
+                    otaSelect.innerHTML += `<option value="firmware/${filename}">${label}</option>`;
+                }
+            } else {
+                // Add to USB dropdown if showRC is checked or it's not a prerelease
+                if (!isPrerelease || showRC) {
+                    usbSelect.innerHTML += `<option value="firmware/${filename}">${label}</option>`;
+                }
+            }
+        });
+        
+        // Add custom option for OTA
+        otaSelect.innerHTML += '<option value="">-- Custom URL --</option>';
+        
+        // If no options, add fallback
+        if (usbSelect.children.length === 0) {
+            usbSelect.innerHTML = '<option value="firmware/firmware.bin">Latest (if available)</option>';
+        }
+        if (otaSelect.children.length === 1) { // Only custom option
+            otaSelect.innerHTML = '<option value="firmware/firmware-web-ota.bin">Latest (if available)</option>' + otaSelect.innerHTML;
+        }
+        
+    } catch (error) {
+        console.error('Failed to load firmware directory:', error);
+        // Fallback to static options
+        usbSelect.innerHTML = '<option value="firmware/firmware.bin">Latest (if available)</option>';
+        otaSelect.innerHTML = '<option value="firmware/firmware-web-ota.bin">Latest (if available)</option><option value="">-- Custom URL --</option>';
+    }
+}
 
 // Handle disconnection
 window.addEventListener('beforeunload', () => {

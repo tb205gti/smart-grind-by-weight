@@ -243,10 +243,15 @@
             </div>
             
             <div class="form-group">
-                <label for="usbFirmwareSelect">Select Firmware</label>
+                <label for="usbFirmwareSelect">Select Firmware Version</label>
+                <div style="margin-bottom: 10px;">
+                    <label style="font-weight: normal; display: flex; align-items: center;">
+                        <input type="checkbox" id="showReleaseCandidate" onchange="loadReleases()" style="margin-right: 8px;">
+                        Show release candidates (RC, beta, alpha)
+                    </label>
+                </div>
                 <select id="usbFirmwareSelect" onchange="updateManifestFirmware()">
-                    <option value="firmware/firmware.bin">Latest (hosted)</option>
-                    <option value="https://github.com/jaapp/smart-grind-by-weight/releases/download/v1.0.0/firmware.bin">v1.0.0 (GitHub)</option>
+                    <option value="">Loading releases...</option>
                 </select>
             </div>
             
@@ -269,11 +274,15 @@
             </div>
             
             <div class="form-group">
-                <label for="firmwareUrl">Firmware URL</label>
+                <label for="firmwareSelect">Select Firmware Version (OTA)</label>
+                <div style="margin-bottom: 10px;">
+                    <label style="font-weight: normal; display: flex; align-items: center;">
+                        <input type="checkbox" id="showReleaseCandidateOTA" onchange="loadReleases()" style="margin-right: 8px;">
+                        Show release candidates (RC, beta, alpha)
+                    </label>
+                </div>
                 <select id="firmwareSelect" onchange="updateFirmwareUrl()">
-                    <option value="">Select firmware or enter custom URL</option>
-                    <option value="firmware/firmware-web-ota.bin">Latest (hosted)</option>
-                    <option value="https://github.com/jaapp/smart-grind-by-weight/releases/download/v1.0.0/firmware-web-ota.bin">v1.0.0 (GitHub)</option>
+                    <option value="">Loading releases...</option>
                 </select>
                 <input type="text" id="firmwareUrl" placeholder="Or paste GitHub release URL">
             </div>
