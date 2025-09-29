@@ -151,21 +151,39 @@ ESP32-S3 GND       →    Pin 4 (Ground)
 ## 🚀 Firmware Installation
 
 ### 🌐 Web Flasher (Recommended)
-**URL:** [jaapp.github.io/smart-grind-by-weight](https://jaapp.github.io/smart-grind-by-weight)
+**[🔗 Open Web Flasher Tool](https://jaapp.github.io/smart-grind-by-weight)**
 
-1. **Initial Setup (USB)**: Chrome/Edge → Enter GitHub firmware URL → Flash via ESP Web Tools
-2. **Updates (BLE)**: Enable device BLE → Enter firmware URL → Connect & flash wirelessly
+**Two-Step Installation Process:**
 
-### Command Line (Alternative)
+1. **Initial Setup (USB - One Time Only)**
+   - Connect ESP32 via USB cable
+   - Use Chrome/Edge browser
+   - Select firmware version from dropdown
+   - Click "Flash via USB" - opens ESP Web Tools
+   - After installation, device is ready for wireless updates
+
+2. **Future Updates (BLE - After Installation)**
+   - Power on the grinder and enable Bluetooth in device settings
+   - Select firmware version from OTA dropdown  
+   - Click "Connect to Device" → "Flash Firmware"
+   - Update happens wirelessly - **no USB cable needed**
+
+**Key Benefits:**
+- ✅ **No downloads needed** - firmware hosted automatically
+- ✅ **No command line** - simple web interface
+- ✅ **Automatic version listing** - all releases available in dropdown
+- ✅ **Wireless updates** - once installed, never need USB again
+
+### Command Line (Fallback)
 ```bash
-# First time (USB)
+# First time (USB) - if web flasher unavailable
 python3 tools/grinder.py upload firmware.bin
 
-# Updates (BLE) - Enable device Bluetooth first
+# Updates (BLE) - Enable device Bluetooth first  
 python3 tools/grinder.py upload firmware.bin
 ```
 
-**Download firmware:** [Releases page](https://github.com/jaapp/smart-grind-by-weight/releases)
+**Manual firmware download:** [Releases page](https://github.com/jaapp/smart-grind-by-weight/releases)  
 **Build from source:** See [DEVELOPMENT.md](DEVELOPMENT.md)
 
 ---
