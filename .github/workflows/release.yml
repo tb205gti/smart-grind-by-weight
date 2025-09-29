@@ -36,29 +36,29 @@ jobs:
     - name: Prepare release artifacts
       run: |
         mkdir -p release-artifacts
-        # Copy firmware binaries (only what users need for BLE OTA)
-        find .pio/build -name "firmware.bin" -exec cp {} release-artifacts/ \;
+        VERSION=${{ github.ref_name }}
+        # Copy firmware binary from the main environment with versioned name
+        cp .pio/build/waveshare-esp32s3-touch-amoled-164/firmware.bin release-artifacts/smart-grind-by-weight-${VERSION}.bin
         
         # Copy versioned firmware to tools/web-flasher for CORS-free hosting
         mkdir -p tools/web-flasher/firmware
-        VERSION=${{ github.ref_name }}
         
         # Copy firmware with version in filename
-        find .pio/build -name "firmware.bin" -exec cp {} tools/web-flasher/firmware/firmware-${VERSION}.bin \;
+        cp .pio/build/waveshare-esp32s3-touch-amoled-164/firmware.bin tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}.bin
         
         # Generate web-specific OTA patch files with version
         pip install detools
-        if [ -f "tools/web-flasher/firmware/firmware-${VERSION}.bin" ]; then
-          echo "Generating web OTA patch for firmware-${VERSION}.bin"
+        if [ -f "tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}.bin" ]; then
+          echo "Generating web OTA patch for smart-grind-by-weight-${VERSION}.bin"
           # Create empty file for delta base
           touch empty.bin
           # Generate compressed patch against empty file (web flasher only)
-          detools create_patch -c heatshrink empty.bin "tools/web-flasher/firmware/firmware-${VERSION}.bin" "tools/web-flasher/firmware/firmware-${VERSION}-web-ota.bin"
-          echo "Web OTA patch created: firmware-${VERSION}-web-ota.bin ($(du -h "tools/web-flasher/firmware/firmware-${VERSION}-web-ota.bin" | cut -f1))"
+          detools create_patch -c heatshrink empty.bin "tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}.bin" "tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}-web-ota.bin"
+          echo "Web OTA patch created: smart-grind-by-weight-${VERSION}-web-ota.bin ($(du -h "tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}-web-ota.bin" | cut -f1))"
         fi
         # Create a firmware package
         cd release-artifacts
-        tar -czf firmware-${{ github.ref_name }}.tar.gz *.bin
+        tar -czf smart-grind-by-weight-${{ github.ref_name }}.tar.gz *.bin
         cd ..
         
     - name: Commit web-flasher firmware files
@@ -74,7 +74,7 @@ jobs:
         # Copy the versioned firmware files to the main branch
         mkdir -p tools/web-flasher/firmware
         VERSION=${{ github.ref_name }}
-        cp .pio/build/*/firmware.bin tools/web-flasher/firmware/firmware-${VERSION}.bin 2>/dev/null || true
+        cp .pio/build/waveshare-esp32s3-touch-amoled-164/firmware.bin tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}.bin 2>/dev/null || true
         find . -name "*-web-ota.bin" -exec cp {} tools/web-flasher/firmware/ \; 2>/dev/null || true
         
         # Update firmware index.json
@@ -98,8 +98,8 @@ jobs:
         cat > release-notes.md << EOF
         ## Installation
         
-        1. Download \`firmware.bin\` below
-        2. Use the grinder tool to upload: \`python3 tools/grinder.py upload firmware.bin\`
+        1. Download \`smart-grind-by-weight-${{ github.ref_name }}.bin\` below
+        2. Use the grinder tool to upload: \`python3 tools/grinder.py upload smart-grind-by-weight-${{ github.ref_name }}.bin\`
         
         ## Build Information
         - Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")

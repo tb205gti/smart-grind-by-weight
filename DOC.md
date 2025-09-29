@@ -177,10 +177,10 @@ ESP32-S3 GND       →    Pin 4 (Ground)
 ### Command Line (Fallback)
 ```bash
 # First time (USB) - if web flasher unavailable
-python3 tools/grinder.py upload firmware.bin
+python3 tools/grinder.py upload smart-grind-by-weight-vX.X.X.bin
 
 # Updates (BLE) - Enable device Bluetooth first  
-python3 tools/grinder.py upload firmware.bin
+python3 tools/grinder.py upload smart-grind-by-weight-vX.X.X.bin
 ```
 
 **Manual firmware download:** [Releases page](https://github.com/jaapp/smart-grind-by-weight/releases)  

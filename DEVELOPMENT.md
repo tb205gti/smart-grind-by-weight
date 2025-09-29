@@ -110,7 +110,7 @@ Once the device is running and connected to Bluetooth:
 python3 tools/grinder.py build-upload
 
 # Upload specific firmware file
-python3 tools/grinder.py upload path/to/firmware.bin
+python3 tools/grinder.py upload path/to/smart-grind-by-weight-vX.X.X.bin
 
 # Force full firmware update (skip delta patching)
 python3 tools/grinder.py build-upload --force-full

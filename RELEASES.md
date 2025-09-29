@@ -16,10 +16,10 @@ This project uses automated releases triggered by Git tags. Here's how it works:
 ### Installing Releases
 ```bash
 # Download and extract firmware package
-tar -xzf firmware-v1.0.0.tar.gz
+tar -xzf smart-grind-by-weight-v1.0.0.tar.gz
 
 # Upload using the grinder tool
-python3 tools/grinder.py upload firmware.bin
+python3 tools/grinder.py upload smart-grind-by-weight-vX.X.X.bin
 ```
 
 ## For Development
