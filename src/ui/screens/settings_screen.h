@@ -11,12 +11,12 @@ class SettingsScreen {
 private:
     lv_obj_t* screen;
     lv_obj_t* menu;
-    lv_obj_t* info_tab;
-    lv_obj_t* bluetooth_tab;
-    lv_obj_t* display_tab;
-    lv_obj_t* grind_mode_tab;
-    lv_obj_t* tools_tab;
-    lv_obj_t* reset_tab;
+    lv_obj_t* info_page;
+    lv_obj_t* bluetooth_page;
+    lv_obj_t* display_page;
+    lv_obj_t* grind_mode_page;
+    lv_obj_t* tools_page;
+    lv_obj_t* data_page;
     
     // Info tab elements
     lv_obj_t* info_label;
@@ -67,7 +67,7 @@ public:
     void hide();
     void update_info(const WeightSensor* weight_sensor, unsigned long uptime_ms, size_t free_heap);
     void update_ble_status();
-    void refresh_statistics();
+    void refresh_statistics(bool show_overlay = true);
     void update_brightness_labels(int normal_percent = -1, int screensaver_percent = -1); // Use negative value to leave unchanged
     void update_brightness_sliders();
     void update_bluetooth_startup_toggle();
