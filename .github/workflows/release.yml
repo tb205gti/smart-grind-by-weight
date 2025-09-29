@@ -37,10 +37,43 @@ jobs:
         mkdir -p release-artifacts
         # Copy firmware binaries (only what users need for BLE OTA)
         find .pio/build -name "firmware.bin" -exec cp {} release-artifacts/ \;
+        
+        # Copy latest firmware to tools/web-flasher for CORS-free hosting
+        mkdir -p tools/web-flasher/firmware
+        find .pio/build -name "firmware.bin" -exec cp {} tools/web-flasher/firmware/ \;
+        
+        # Generate web-specific OTA patch files (not included in release artifacts)
+        pip install detools
+        for firmware in tools/web-flasher/firmware/firmware.bin; do
+          if [ -f "$firmware" ]; then
+            echo "Generating web OTA patch for $firmware"
+            # Create empty file for delta base
+            touch empty.bin
+            # Generate compressed patch against empty file (web flasher only)
+            detools create_patch -c heatshrink empty.bin "$firmware" "${firmware%.bin}-web-ota.bin"
+            echo "Web OTA patch created: ${firmware%.bin}-web-ota.bin ($(du -h "${firmware%.bin}-web-ota.bin" | cut -f1))"
+            echo "This file is for web flasher only, not included in release artifacts"
+          fi
+        done
         # Create a firmware package
         cd release-artifacts
         tar -czf firmware-${{ github.ref_name }}.tar.gz *.bin
         cd ..
+        
+    - name: Commit web-flasher firmware files
+      run: |
+        # Configure git
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Add the generated firmware files for web flasher
+        git add tools/web-flasher/firmware/
+        
+        # Only commit if there are changes
+        if ! git diff --staged --quiet; then
+          git commit -m "chore: Update web-flasher firmware for release ${{ github.ref_name }}"
+          git push
+        fi
         
     - name: Prepare release notes
       id: changelog
@@ -72,5 +105,12 @@ jobs:
         draft: true
         prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'rc') }}
         generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Deploy Web Flasher
+      run: |
+        # Trigger web flasher deployment workflow
+        gh workflow run deploy-web-flasher.yml
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

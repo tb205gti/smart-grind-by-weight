@@ -16,8 +16,9 @@
 #define BLE_OTA_STATUS_CHAR_UUID "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"       // Characteristic for OTA status notifications
 #define BLE_OTA_BUILD_NUMBER_CHAR_UUID "66666666-7777-8888-9999-000000000000" // Characteristic for current firmware build number
 
-// OTA Device Settings
-#define BLE_OTA_DEVICE_NAME "GrindByWeight"                                    // Bluetooth device name when in OTA mode
+// Device Settings
+#define BLE_DEVICE_NAME "GrindByWeight"                                       // Bluetooth device name (GATT + advertising)
+#define BLE_OTA_DEVICE_NAME BLE_DEVICE_NAME                                    // Bluetooth device name when in OTA mode
 
 //------------------------------------------------------------------------------
 // BLE DATA EXPORT SERVICE

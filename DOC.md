@@ -150,49 +150,23 @@ ESP32-S3 GND       →    Pin 4 (Ground)
 
 ## 🚀 Firmware Installation
 
-### Using Pre-built Firmware (Recommended for Users)
+### 🌐 Web Flasher (Recommended)
+**URL:** [jaapp.github.io/smart-grind-by-weight](https://jaapp.github.io/smart-grind-by-weight)
 
-1. **Download firmware** from the [Releases page](https://github.com/jaapp/smart-grind-by-weight/releases)
-2. **Extract the firmware package** and locate the `.bin` file
-3. **Flash via USB** (first time only):
-   ```bash
-   # Install Python dependencies
-   python3 tools/grinder.py install
-   
-   # Upload firmware via USB cable
-   python3 tools/grinder.py upload firmware.bin
-   ```
+1. **Initial Setup (USB)**: Chrome/Edge → Enter GitHub firmware URL → Flash via ESP Web Tools
+2. **Updates (BLE)**: Enable device BLE → Enter firmware URL → Connect & flash wirelessly
 
-### BLE OTA Updates (After Initial Setup)
-
-Once your device is running, you can update wirelessly without needing a USB cable:
-
-#### Prerequisites for BLE Updates
-1. **Enable Bluetooth on device**: Settings → Bluetooth → Toggle ON (or enable startup auto-enable)
-2. **Keep laptop/computer close** to the Waveshare board during upload (within 1-2 meters for reliable connection)
-3. **Download new firmware** from [Releases page](https://github.com/jaapp/smart-grind-by-weight/releases)
-
-#### Upload Process
+### Command Line (Alternative)
 ```bash
-# Upload new firmware via Bluetooth (automatically uses full upload for .bin files)
+# First time (USB)
 python3 tools/grinder.py upload firmware.bin
 
-# Scan for devices if connection fails
-python3 tools/grinder.py scan
-
-# Get device info to verify connection
-python3 tools/grinder.py info
+# Updates (BLE) - Enable device Bluetooth first
+python3 tools/grinder.py upload firmware.bin
 ```
 
-**⚠️ Important Notes:**
-- **Proximity matters**: Keep your computer within 1-2 meters of the device during upload
-- **Bluetooth auto-timeout**: Device Bluetooth turns off after 30 minutes (re-enable if needed)
-- **Full update**: When uploading `.bin` files, the system automatically performs a complete firmware update
-- **Upload time**: Expect 2-5 minutes for a complete firmware update over BLE
-
-### Building from Source (Developers Only)
-
-If you want to modify the code or contribute to development, see **[DEVELOPMENT.md](DEVELOPMENT.md)** for complete build instructions and development setup.
+**Download firmware:** [Releases page](https://github.com/jaapp/smart-grind-by-weight/releases)
+**Build from source:** See [DEVELOPMENT.md](DEVELOPMENT.md)
 
 ---
 

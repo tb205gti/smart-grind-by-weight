@@ -99,7 +99,8 @@ void BluetoothManager::enable(unsigned long timeout_ms) {
     last_disconnect_time = enable_time; // Start disconnected timeout from enable time
     
     // Initialize BLE with delays for power stability
-    BLEDevice::init(BLE_OTA_DEVICE_NAME);
+    BLEDevice::init(BLE_DEVICE_NAME);
+    
     // Request a larger MTU to improve throughput when the client supports it.
     // Some platforms (e.g., macOS/iOS) may ignore this request and keep a lower MTU.
     // That's fine — we also keep chunk sizes small and paced below.
@@ -229,6 +230,16 @@ void BluetoothManager::enable(unsigned long timeout_ms) {
     advertising->setScanResponse(true);
     advertising->setMinPreferred(0x06);
     advertising->setMinPreferred(0x12);
+    
+    // Set advertised name in both advertising data and scan response data
+    advertising->setName(BLE_DEVICE_NAME);
+    BLEAdvertisementData adv;
+    adv.setName(BLE_DEVICE_NAME);
+    advertising->setAdvertisementData(adv);
+    BLEAdvertisementData sr;
+    sr.setName(BLE_DEVICE_NAME);
+    advertising->setScanResponseData(sr);
+    
     delay(BLE_INIT_ADVERTISING_DELAY_MS);
     
     ble_enabled = true;

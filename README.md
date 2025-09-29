@@ -72,7 +72,7 @@ flowchart LR
 2. **3D print the mounting parts** - All STL files included, no supports needed
 3. **Download the latest firmware** - Go to **[Releases](https://github.com/jaapp/smart-grind-by-weight/releases)** and download the latest firmware package
 4. **Follow the assembly video** - [Complete Eureka build process](https://youtu.be/-kfKjiwJsGM)
-5. **Flash firmware & calibrate** - Use the included upload tool: `python3 tools/grinder.py upload firmware.bin`
+5. **Flash firmware & calibrate** - [Web Flasher](https://jaapp.github.io/smart-grind-by-weight) (USB + BLE) or command line
 
 ### For Developers - Building from Source
 
