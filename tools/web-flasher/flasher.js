@@ -466,22 +466,9 @@ async function loadReleases() {
         usbSelect.innerHTML = '<option value="">Loading firmware...</option>';
         otaSelect.innerHTML = '<option value="">Loading firmware...</option>';
         
-        // Fetch directory listing (this works on GitHub Pages)
-        const response = await fetch('firmware/');
-        const html = await response.text();
-        
-        // Parse HTML to extract firmware filenames
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const links = doc.querySelectorAll('a');
-        
-        const firmwareFiles = [];
-        links.forEach(link => {
-            const filename = link.getAttribute('href');
-            if (filename && filename.match(/^firmware-v[\d\.]+(.*)?\.bin$/)) {
-                firmwareFiles.push(filename);
-            }
-        });
+        // Fetch firmware file list from JSON index
+        const response = await fetch('firmware/index.json');
+        const firmwareFiles = await response.json();
         
         // Clear dropdowns
         usbSelect.innerHTML = '';

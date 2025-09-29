@@ -77,6 +77,11 @@ jobs:
         cp .pio/build/*/firmware.bin tools/web-flasher/firmware/firmware-${VERSION}.bin 2>/dev/null || true
         find . -name "*-web-ota.bin" -exec cp {} tools/web-flasher/firmware/ \; 2>/dev/null || true
         
+        # Update firmware index.json
+        cd tools/web-flasher/firmware
+        ls -1 *.bin | jq -R -s -c 'split("\n")[:-1]' > index.json
+        cd ../../..
+        
         # Add the generated firmware files for web flasher
         git add tools/web-flasher/firmware/
         
