@@ -3,7 +3,10 @@ name: Deploy Web Flasher
 on:
   push:
     tags:
-      - 'v*'  # Only deploy web flasher on releases
+      - 'v*'  # Deploy on releases
+    branches: [ main ]
+    paths:
+      - 'tools/web-flasher/**'  # Also deploy when web-flasher files change
   workflow_dispatch:
 
 permissions:

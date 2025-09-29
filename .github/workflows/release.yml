@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
   
 jobs:
   release:
@@ -114,12 +115,5 @@ jobs:
         draft: true
         prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'rc') }}
         generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
-    - name: Deploy Web Flasher
-      run: |
-        # Trigger web flasher deployment workflow
-        gh workflow run deploy-web-flasher.yml
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
