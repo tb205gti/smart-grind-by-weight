@@ -262,6 +262,11 @@ function prepareFirmwareData(firmwareData) {
 async function flashFirmware() {
     const firmwareSelect = document.getElementById('firmwareSelect');
     
+    if (!firmwareSelect) {
+        updateStatus('Firmware selection element not found', 'error');
+        return;
+    }
+    
     const firmwareUrl = firmwareSelect.value;
     if (!firmwareUrl) {
         updateStatus('Please select a firmware version', 'error');
