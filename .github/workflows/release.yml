@@ -66,13 +66,22 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         
+        # Switch to main branch (we're in detached HEAD from tag checkout)
+        git checkout main
+        git pull origin main
+        
+        # Copy the firmware files to the main branch
+        mkdir -p tools/web-flasher/firmware
+        cp .pio/build/*/firmware.bin tools/web-flasher/firmware/ 2>/dev/null || true
+        find . -name "*-web-ota.bin" -exec cp {} tools/web-flasher/firmware/ \; 2>/dev/null || true
+        
         # Add the generated firmware files for web flasher
         git add tools/web-flasher/firmware/
         
         # Only commit if there are changes
         if ! git diff --staged --quiet; then
           git commit -m "chore: Update web-flasher firmware for release ${{ github.ref_name }}"
-          git push
+          git push origin main
         fi
         
     - name: Prepare release notes
