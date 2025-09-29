@@ -118,3 +118,10 @@ jobs:
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Trigger web-flasher deployment
+      run: |
+        # Trigger web flasher deployment workflow manually
+        gh workflow run deploy-web-flasher.yml
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
