@@ -260,9 +260,11 @@ function prepareFirmwareData(firmwareData) {
 
 // Main firmware flash function
 async function flashFirmware() {
-    const firmwareUrl = document.getElementById('firmwareUrl').value.trim();
+    const firmwareSelect = document.getElementById('firmwareSelect');
+    
+    const firmwareUrl = firmwareSelect.value;
     if (!firmwareUrl) {
-        updateStatus('Please enter a firmware URL', 'error');
+        updateStatus('Please select a firmware version', 'error');
         return;
     }
     
@@ -445,14 +447,7 @@ async function updateManifestFile(firmwareUrl) {
     // For now, the manifest.json file should be manually updated or updated via build process
 }
 
-// Firmware URL helper functions
-function updateFirmwareUrl() {
-    const select = document.getElementById('firmwareSelect');
-    const input = document.getElementById('firmwareUrl');
-    if (select.value) {
-        input.value = select.value;
-    }
-}
+// Firmware selection is now handled directly by dropdown
 
 
 // Load firmware files from directory
@@ -505,22 +500,21 @@ async function loadReleases() {
             }
         });
         
-        // Add custom option for OTA
-        otaSelect.innerHTML += '<option value="">-- Custom URL --</option>';
+        // No custom URL option needed
         
         // If no options, add fallback
         if (usbSelect.children.length === 0) {
             usbSelect.innerHTML = '<option value="firmware/firmware.bin">Latest (if available)</option>';
         }
-        if (otaSelect.children.length === 1) { // Only custom option
-            otaSelect.innerHTML = '<option value="firmware/firmware-web-ota.bin">Latest (if available)</option>' + otaSelect.innerHTML;
+        if (otaSelect.children.length === 0) {
+            otaSelect.innerHTML = '<option value="firmware/firmware-web-ota.bin">Latest (if available)</option>';
         }
         
     } catch (error) {
         console.error('Failed to load firmware directory:', error);
         // Fallback to static options
         usbSelect.innerHTML = '<option value="firmware/firmware.bin">Latest (if available)</option>';
-        otaSelect.innerHTML = '<option value="firmware/firmware-web-ota.bin">Latest (if available)</option><option value="">-- Custom URL --</option>';
+        otaSelect.innerHTML = '<option value="firmware/firmware-web-ota.bin">Latest (if available)</option>';
     }
 }
 
