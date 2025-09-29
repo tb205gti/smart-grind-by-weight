@@ -476,9 +476,15 @@ async function loadReleases() {
         
         // Sort files by version (newest first)
         firmwareFiles.sort((a, b) => {
-            const versionA = a.match(/v([\d\.]+)/)?.[1] || '0';
-            const versionB = b.match(/v([\d\.]+)/)?.[1] || '0';
-            return versionB.localeCompare(versionA, undefined, { numeric: true });
+            // Extract full version including prerelease info
+            const versionA = a.match(/firmware-(v[\d\.]+(.*?))(\.bin|-web-ota\.bin)$/)?.[1] || '0';
+            const versionB = b.match(/firmware-(v[\d\.]+(.*?))(\.bin|-web-ota\.bin)$/)?.[1] || '0';
+            
+            // Compare versions naturally (newest first)
+            return versionB.localeCompare(versionA, undefined, { 
+                numeric: true, 
+                sensitivity: 'base'
+            });
         });
         
         // Add firmware options
