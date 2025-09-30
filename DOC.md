@@ -174,6 +174,8 @@ ESP32-S3 GND       →    Pin 4 (Ground)
 - ✅ **Automatic version listing** - all releases available in dropdown
 - ✅ **Wireless updates** - once installed, never need USB again
 
+*Initial USB flashing powered by [ESP Web Tools](https://esphome.github.io/esp-web-tools/)*
+
 ### Command Line (Fallback)
 ```bash
 # First time (USB) - if web flasher unavailable

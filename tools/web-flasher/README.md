@@ -8,6 +8,7 @@ A browser-based firmware flashing tool for the Smart Grind By Weight ESP32 coffe
 - First-time firmware installation via ESP Web Tools
 - Uses Web Serial API for direct USB connection
 - Perfect for factory setup or recovery
+- Powered by [ESP Web Tools](https://esphome.github.io/esp-web-tools/) for browser-based flashing
 
 ### 📶 OTA Updates (Bluetooth)
 - Over-the-air updates for installed grinders
