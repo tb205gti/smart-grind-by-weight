@@ -173,31 +173,39 @@ def create_release():
     elif choice == '3':
         new_version = increment_version(current_version, 'major')
     elif choice == '4':
-        # Release candidate - ask for base version
-        print("\nRelease Candidate Options:")
-        print("1. RC for patch version")
-        print("2. RC for minor version") 
-        print("3. RC for major version")
-        print("4. RC for custom version")
-        
-        rc_choice = input("Enter choice (1-4): ").strip()
-        
-        if rc_choice == '1':
-            base_version = increment_version(current_version, 'patch')
-        elif rc_choice == '2':
-            base_version = increment_version(current_version, 'minor')
-        elif rc_choice == '3':
-            base_version = increment_version(current_version, 'major')
-        elif rc_choice == '4':
-            base_version = input("Enter base version for RC (e.g., 1.2.3): ").strip()
-            if base_version.startswith('v'):
-                base_version = base_version[1:]
+        # Release candidate - check if current version is already an RC
+        current_clean = current_version.lstrip('v')
+        if '-rc.' in current_clean:
+            # Current version is already an RC, just increment it
+            base_version = current_clean.split('-rc.')[0]
+            new_version = get_next_rc_version(base_version)
+            print(f"Current version is already an RC. Next RC version: {new_version}")
         else:
-            print("Invalid choice.")
-            return False
-        
-        new_version = get_next_rc_version(base_version)
-        print(f"Next RC version: {new_version}")
+            # Ask for base version
+            print("\nRelease Candidate Options:")
+            print("1. RC for patch version")
+            print("2. RC for minor version") 
+            print("3. RC for major version")
+            print("4. RC for custom version")
+            
+            rc_choice = input("Enter choice (1-4): ").strip()
+            
+            if rc_choice == '1':
+                base_version = increment_version(current_version, 'patch')
+            elif rc_choice == '2':
+                base_version = increment_version(current_version, 'minor')
+            elif rc_choice == '3':
+                base_version = increment_version(current_version, 'major')
+            elif rc_choice == '4':
+                base_version = input("Enter base version for RC (e.g., 1.2.3): ").strip()
+                if base_version.startswith('v'):
+                    base_version = base_version[1:]
+            else:
+                print("Invalid choice.")
+                return False
+            
+            new_version = get_next_rc_version(base_version)
+            print(f"Next RC version: {new_version}")
         
     elif choice == '5':
         custom_version = input("Enter custom version (e.g., v1.2.3): ").strip()
