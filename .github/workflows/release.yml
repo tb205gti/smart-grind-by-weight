@@ -68,10 +68,10 @@ jobs:
             manifest_file="${firmware_file%.bin}.manifest.json"
             
             # Create manifest file
-            cat > "$manifest_file" << EOF
+            cat > "$manifest_file" << 'MANIFEST_EOF'
 {
   "name": "Smart Grind By Weight",
-  "version": "$firmware_version",
+  "version": "FIRMWARE_VERSION_PLACEHOLDER",
   "home_assistant_domain": "grinder",
   "new_install_skip_erase": false,
   "builds": [
@@ -79,14 +79,17 @@ jobs:
       "chipFamily": "ESP32-S3",
       "parts": [
         {
-          "path": "$firmware_file",
+          "path": "FIRMWARE_FILE_PLACEHOLDER",
           "offset": 0
         }
       ]
     }
   ]
 }
-EOF
+MANIFEST_EOF
+            # Replace placeholders
+            sed -i "s/FIRMWARE_VERSION_PLACEHOLDER/$firmware_version/g" "$manifest_file"
+            sed -i "s/FIRMWARE_FILE_PLACEHOLDER/$firmware_file/g" "$manifest_file"
             echo "Generated manifest: $manifest_file"
           fi
         done
