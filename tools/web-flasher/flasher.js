@@ -456,7 +456,10 @@ async function loadReleases() {
                 file.name.endsWith('.bin') && 
                 file.name.startsWith('smart-grind-by-weight') && 
                 file.name !== 'empty.bin' &&
-                !file.name.includes('unversioned')
+                !file.name.includes('unversioned') &&
+                !file.name.includes('-bootloader.bin') &&
+                !file.name.includes('-partitions.bin') &&
+                file.name !== 'blank_8KB.bin'
             )
             .sort((a, b) => {
                 // Extract version for sorting - all files should be versioned now
