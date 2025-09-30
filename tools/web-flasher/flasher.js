@@ -416,46 +416,26 @@ function updateManifestFirmware() {
     const firmwareUrl = select.value;
     
     if (firmwareUrl) {
-        // Update the manifest.json file dynamically (conceptually)
-        // In production, this would update the actual manifest file
+        // Generate manifest file path from firmware file path
+        const manifestUrl = firmwareUrl.replace('.bin', '.manifest.json');
+        
         console.log('Selected firmware:', firmwareUrl);
+        console.log('Using manifest:', manifestUrl);
         
         document.getElementById('usbStatus').textContent = `Selected: ${firmwareUrl}`;
         document.getElementById('usbStatus').className = 'status info';
         document.getElementById('usbStatus').style.display = 'block';
         
-        // For now, we'll update the manifest conceptually
-        // The ESP Web Tools button will use the manifest.json file
-        updateManifestFile(firmwareUrl);
+        // Update the ESP Web Tools button's manifest attribute
+        const installButton = document.getElementById('usbInstallButton');
+        installButton.setAttribute('manifest', manifestUrl);
     }
-}
-
-// Update manifest file with selected firmware
-async function updateManifestFile(firmwareUrl) {
-    const manifest = {
-        name: "Smart Grind By Weight",
-        version: "1.0.0",
-        home_assistant_domain: "grinder",
-        new_install_skip_erase: false,
-        builds: [{
-            chipFamily: "ESP32-S3",
-            parts: [{
-                path: firmwareUrl,
-                offset: 0
-            }]
-        }]
-    };
-    
-    console.log('Manifest updated with:', JSON.stringify(manifest, null, 2));
-    
-    // TODO: In production, this would make an API call to update the manifest.json file
-    // For now, the manifest.json file should be manually updated or updated via build process
 }
 
 // Firmware selection is now handled directly by dropdown
 
 
-// Load firmware files from directory
+// Load firmware files from GitHub directory
 async function loadReleases() {
     const usbSelect = document.getElementById('usbFirmwareSelect');
     const otaSelect = document.getElementById('firmwareSelect');
@@ -466,37 +446,58 @@ async function loadReleases() {
         usbSelect.innerHTML = '<option value="">Loading firmware...</option>';
         otaSelect.innerHTML = '<option value="">Loading firmware...</option>';
         
-        // Fetch firmware file list from JSON index
-        const response = await fetch('firmware/index.json');
-        const firmwareFiles = await response.json();
+        // Fetch firmware file list from GitHub API
+        const response = await fetch('https://api.github.com/repos/jaapp/smart-grind-by-weight/contents/tools/web-flasher/firmware');
+        const fileData = await response.json();
+        
+        // Extract firmware files and sort by version (newest first)
+        const firmwareFiles = fileData
+            .filter(file => 
+                file.name.endsWith('.bin') && 
+                file.name.startsWith('smart-grind-by-weight') && 
+                file.name !== 'empty.bin' &&
+                !file.name.includes('unversioned')
+            )
+            .sort((a, b) => {
+                // Extract version for sorting - all files should be versioned now
+                const getVersion = (filename) => {
+                    const versionMatch = filename.match(/smart-grind-by-weight-v(\d+\.\d+\.\d+(?:-(?:rc|beta|alpha)\d*)?)/);
+                    return versionMatch ? versionMatch[1] : null;
+                };
+                
+                const versionA = getVersion(a.name);
+                const versionB = getVersion(b.name);
+                
+                // Both should be versioned - compare semantically (newest first)
+                if (versionA && versionB) {
+                    return versionB.localeCompare(versionA, undefined, { 
+                        numeric: true, 
+                        sensitivity: 'base'
+                    });
+                }
+                
+                return 0;
+            });
         
         // Clear dropdowns
         usbSelect.innerHTML = '';
         otaSelect.innerHTML = '';
         
-        // Sort files by version (newest first)
-        firmwareFiles.sort((a, b) => {
-            // Extract full version including prerelease info
-            const versionA = a.match(/firmware-(v[\d\.]+(.*?))(\.bin|-web-ota\.bin)$/)?.[1] || '0';
-            const versionB = b.match(/firmware-(v[\d\.]+(.*?))(\.bin|-web-ota\.bin)$/)?.[1] || '0';
-            
-            // Compare versions naturally (newest first)
-            return versionB.localeCompare(versionA, undefined, { 
-                numeric: true, 
-                sensitivity: 'base'
-            });
-        });
-        
         // Add firmware options
-        firmwareFiles.forEach(filename => {
-            const versionMatch = filename.match(/firmware-(v[\d\.]+(.*?))(\.bin|-web-ota\.bin)$/);
-            if (!versionMatch) return;
+        firmwareFiles.forEach(file => {
+            const filename = file.name;
+            
+            // Parse version from filename: smart-grind-by-weight-v1.2.0-rc1.bin or smart-grind-by-weight-v1.2.0-web-ota.bin
+            const versionMatch = filename.match(/smart-grind-by-weight-v(\d+\.\d+\.\d+(?:-(?:rc|beta|alpha)\d*)?)/);
+            if (!versionMatch) return; // Skip files without version
             
             const version = versionMatch[1];
-            const isPrerelease = version.includes('rc') || version.includes('beta') || version.includes('alpha');
+            const isPrerelease = version.includes('-') && (version.includes('rc') || version.includes('beta') || version.includes('alpha'));
+            
             const isOTA = filename.includes('-web-ota.bin');
             
-            const label = isPrerelease ? `${version} (pre-release)` : version;
+            // Create display label
+            const label = isPrerelease ? `v${version} (pre-release)` : `v${version}`;
             
             if (isOTA) {
                 // Add to OTA dropdown if showRCOTA is checked or it's not a prerelease
@@ -511,21 +512,24 @@ async function loadReleases() {
             }
         });
         
-        // No custom URL option needed
-        
         // If no options, add fallback
         if (usbSelect.children.length === 0) {
-            usbSelect.innerHTML = '<option value="firmware/firmware.bin">Latest (if available)</option>';
+            usbSelect.innerHTML = '<option value="">No firmware available</option>';
+        } else {
+            // Auto-select the first (newest) firmware and update manifest immediately
+            usbSelect.selectedIndex = 0;
+            updateManifestFirmware();
         }
+        
         if (otaSelect.children.length === 0) {
-            otaSelect.innerHTML = '<option value="firmware/firmware-web-ota.bin">Latest (if available)</option>';
+            otaSelect.innerHTML = '<option value="">No firmware available</option>';
         }
         
     } catch (error) {
         console.error('Failed to load firmware directory:', error);
         // Fallback to static options
-        usbSelect.innerHTML = '<option value="firmware/firmware.bin">Latest (if available)</option>';
-        otaSelect.innerHTML = '<option value="firmware/firmware-web-ota.bin">Latest (if available)</option>';
+        usbSelect.innerHTML = '<option value="firmware/smart-grind-by-weight.bin">Latest (if available)</option>';
+        otaSelect.innerHTML = '<option value="firmware/smart-grind-by-weight-unversioned-web-ota.bin">Latest (if available)</option>';
     }
 }
 

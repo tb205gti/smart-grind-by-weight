@@ -31,7 +31,8 @@ jobs:
     
     - name: Build firmware
       run: |
-        python3 tools/grinder.py build
+        # Use platformio directly like local development to ensure identical build
+        pio run -e waveshare-esp32s3-touch-amoled-164
         
     - name: Prepare release artifacts
       run: |
@@ -56,6 +57,40 @@ jobs:
           detools create_patch -c heatshrink empty.bin "tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}.bin" "tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}-web-ota.bin"
           echo "Web OTA patch created: smart-grind-by-weight-${VERSION}-web-ota.bin ($(du -h "tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}-web-ota.bin" | cut -f1))"
         fi
+        
+        # Generate individual manifest files for each firmware version
+        echo "Generating manifest files..."
+        cd tools/web-flasher/firmware
+        for firmware_file in smart-grind-by-weight-v*.bin; do
+          if [[ -f "$firmware_file" && "$firmware_file" != *"-web-ota.bin" ]]; then
+            # Extract version from filename
+            firmware_version=$(echo "$firmware_file" | sed 's/smart-grind-by-weight-v\(.*\)\.bin/\1/')
+            manifest_file="${firmware_file%.bin}.manifest.json"
+            
+            # Create manifest file
+            cat > "$manifest_file" << EOF
+{
+  "name": "Smart Grind By Weight",
+  "version": "$firmware_version",
+  "home_assistant_domain": "grinder",
+  "new_install_skip_erase": false,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "$firmware_file",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}
+EOF
+            echo "Generated manifest: $manifest_file"
+          fi
+        done
+        cd ../../..
         # Create a firmware package
         cd release-artifacts
         tar -czf smart-grind-by-weight-${{ github.ref_name }}.tar.gz *.bin
@@ -77,13 +112,9 @@ jobs:
         cp .pio/build/waveshare-esp32s3-touch-amoled-164/firmware.bin tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}.bin 2>/dev/null || true
         find . -name "*-web-ota.bin" -exec cp {} tools/web-flasher/firmware/ \; 2>/dev/null || true
         
-        # Update firmware index.json
-        cd tools/web-flasher/firmware
-        ls -1 *.bin | jq -R -s -c 'split("\n")[:-1]' > index.json
-        cd ../../..
         
-        # Add the generated firmware files for web flasher
-        git add tools/web-flasher/firmware/
+        # Add the generated firmware files and manifests for web flasher
+        git add tools/web-flasher/firmware/*.bin tools/web-flasher/firmware/*.manifest.json
         
         # Only commit if there are changes
         if ! git diff --staged --quiet; then
