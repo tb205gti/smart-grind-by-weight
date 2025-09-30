@@ -461,7 +461,7 @@ async function loadReleases() {
             .sort((a, b) => {
                 // Extract version for sorting - all files should be versioned now
                 const getVersion = (filename) => {
-                    const versionMatch = filename.match(/smart-grind-by-weight-v(\d+\.\d+\.\d+(?:-(?:rc|beta|alpha)\d*)?)/);
+                    const versionMatch = filename.match(/smart-grind-by-weight-v(\d+\.\d+\.\d+(?:-(?:rc|beta|alpha)\.?\d*)?)/);
                     return versionMatch ? versionMatch[1] : null;
                 };
                 
@@ -487,8 +487,8 @@ async function loadReleases() {
         firmwareFiles.forEach(file => {
             const filename = file.name;
             
-            // Parse version from filename: smart-grind-by-weight-v1.2.0-rc1.bin or smart-grind-by-weight-v1.2.0-web-ota.bin
-            const versionMatch = filename.match(/smart-grind-by-weight-v(\d+\.\d+\.\d+(?:-(?:rc|beta|alpha)\d*)?)/);
+            // Parse version from filename: smart-grind-by-weight-v1.2.1-rc.3.bin or smart-grind-by-weight-v1.2.0-web-ota.bin
+            const versionMatch = filename.match(/smart-grind-by-weight-v(\d+\.\d+\.\d+(?:-(?:rc|beta|alpha)\.?\d*)?)/);
             if (!versionMatch) return; // Skip files without version
             
             const version = versionMatch[1];
