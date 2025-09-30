@@ -72,7 +72,7 @@ jobs:
           echo "Generating manifest files..."
           cd tools/web-flasher/firmware
           for firmware_file in smart-grind-by-weight-v*.bin; do
-            if [[ -f "$firmware_file" && "$firmware_file" != *"-web-ota.bin" ]]; then
+            if [[ -f "$firmware_file" && "$firmware_file" != *"-web-ota.bin" && "$firmware_file" != *"-bootloader.bin" && "$firmware_file" != *"-partitions.bin" ]]; then
               # Extract version from filename
               firmware_version=$(echo "$firmware_file" | sed 's/smart-grind-by-weight-v\(.*\)\.bin/\1/')
               manifest_file="${firmware_file%.bin}.manifest.json"
