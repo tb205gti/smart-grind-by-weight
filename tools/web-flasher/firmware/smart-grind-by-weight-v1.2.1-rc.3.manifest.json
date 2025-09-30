@@ -1,0 +1,17 @@
+{
+  "name": "Smart Grind By Weight",
+  "version": "1.2.1-rc.3",
+  "home_assistant_domain": "grinder",
+  "new_install_skip_erase": false,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "smart-grind-by-weight-v1.2.1-rc.3.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}
