@@ -67,29 +67,8 @@ jobs:
             firmware_version=$(echo "$firmware_file" | sed 's/smart-grind-by-weight-v\(.*\)\.bin/\1/')
             manifest_file="${firmware_file%.bin}.manifest.json"
             
-            # Create manifest file
-            cat > "$manifest_file" << 'MANIFEST_EOF'
-{
-  "name": "Smart Grind By Weight",
-  "version": "FIRMWARE_VERSION_PLACEHOLDER",
-  "home_assistant_domain": "grinder",
-  "new_install_skip_erase": false,
-  "builds": [
-    {
-      "chipFamily": "ESP32-S3",
-      "parts": [
-        {
-          "path": "FIRMWARE_FILE_PLACEHOLDER",
-          "offset": 0
-        }
-      ]
-    }
-  ]
-}
-MANIFEST_EOF
-            # Replace placeholders
-            sed -i "s/FIRMWARE_VERSION_PLACEHOLDER/$firmware_version/g" "$manifest_file"
-            sed -i "s/FIRMWARE_FILE_PLACEHOLDER/$firmware_file/g" "$manifest_file"
+            # Create manifest file using printf to avoid YAML parsing issues
+            printf '{\n  "name": "Smart Grind By Weight",\n  "version": "%s",\n  "home_assistant_domain": "grinder",\n  "new_install_skip_erase": false,\n  "builds": [\n    {\n      "chipFamily": "ESP32-S3",\n      "parts": [\n        {\n          "path": "%s",\n          "offset": 0\n        }\n      ]\n    }\n  ]\n}\n' "$firmware_version" "$firmware_file" > "$manifest_file"
             echo "Generated manifest: $manifest_file"
           fi
         done
