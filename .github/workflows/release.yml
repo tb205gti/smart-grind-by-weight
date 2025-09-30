@@ -68,7 +68,7 @@ jobs:
             manifest_file="${firmware_file%.bin}.manifest.json"
             
             # Create manifest file using printf to avoid YAML parsing issues
-            printf '{\n  "name": "Smart Grind By Weight",\n  "version": "%s",\n  "home_assistant_domain": "grinder",\n  "new_install_skip_erase": false,\n  "builds": [\n    {\n      "chipFamily": "ESP32-S3",\n      "parts": [\n        {\n          "path": "%s",\n          "offset": 0\n        }\n      ]\n    }\n  ]\n}\n' "$firmware_version" "$firmware_file" > "$manifest_file"
+            printf '{\n  "name": "Smart Grind By Weight",\n  "version": "%s",\n  "home_assistant_domain": "grinder",\n  "new_install_skip_erase": true,\n  "builds": [\n    {\n      "chipFamily": "ESP32-S3",\n      "parts": [\n        {\n          "path": "%s",\n          "offset": 0\n        }\n      ]\n    }\n  ]\n}\n' "$firmware_version" "$firmware_file" > "$manifest_file"
             echo "Generated manifest: $manifest_file"
           fi
         done
