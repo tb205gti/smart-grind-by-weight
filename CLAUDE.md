@@ -90,3 +90,4 @@ python3 tools/grinder.py analyze
 - "requestFrom(): i2cWriteReadNonStop returned Error -1" serial messages  are harmless messages caused by polling the touch driver (no interrupts) and should be ignored
 - Use the src/config/constants.h aggregation file to include constants / settings - dont refer to config files directly.
 - When new features have been added and tested always update the docs as well
+- when making a commit, only focus on the end result not the process we went through to get to the end result
