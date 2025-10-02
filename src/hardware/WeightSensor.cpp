@@ -635,7 +635,7 @@ uint32_t WeightSensor::get_ms_since_last_weight_activity() const {
 float WeightSensor::get_standard_deviation_g(uint32_t window_ms) const {
     // Get raw standard deviation and convert to grams
     float raw_std_dev = raw_filter.get_standard_deviation_raw(window_ms);
-    return raw_std_dev / cal_factor;  // Convert from raw ADC units to grams
+    return raw_std_dev / abs(cal_factor);  // Convert from raw ADC units to grams (use abs since noise magnitude is always positive)
 }
 
 int32_t WeightSensor::get_standard_deviation_adc(uint32_t window_ms) const {

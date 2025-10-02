@@ -27,6 +27,7 @@ private:
     lv_obj_t* raw_label;
     lv_obj_t* std_dev_g_label;
     lv_obj_t* std_dev_adc_label;
+    lv_obj_t* threshold_ok_label;
     lv_obj_t* sessions_label;
     lv_obj_t* events_label;
     lv_obj_t* measurements_label;
