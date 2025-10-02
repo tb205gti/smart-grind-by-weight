@@ -155,7 +155,11 @@ def create_release():
         print(commits)
     else:
         print("No new commits since last tag.")
-        return False
+        print("⚠️  Warning: Creating a release without new commits.")
+        response = input("Continue anyway? (y/N): ")
+        if response.lower() != 'y':
+            print("Release cancelled.")
+            return False
     
     print("\nWhat type of release is this?")
     print("1. Patch (bug fixes): v1.0.0 -> v1.0.1")
