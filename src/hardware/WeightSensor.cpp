@@ -47,6 +47,11 @@ WeightSensor::WeightSensor() {
     last_significant_weight = 0.0f;
     last_weight_activity_time = millis();
     
+    // Initialize stable reading diagnostic tracking
+    not_settled_start_time = 0;
+    currently_not_settled = false;
+    display_noisy_state = false;  // Start showing "Yes"
+    
     // RealtimeController integration removed - handled by WeightSamplingTask
 
 #if SYS_ENABLE_REALTIME_HEARTBEAT
@@ -494,6 +499,41 @@ bool WeightSensor::check_settling_complete(uint32_t window_ms, float* settled_we
 void WeightSensor::cancel_settling() {
     // Settling cancellation no longer needed with direct window_ms approach
     LOG_SETTLING_DEBUG("[DEBUG %lums] SETTLING_CANCEL: Settling cancelled\n", millis());
+}
+
+//==============================================================================
+// NOISE LEVEL DIAGNOSTIC
+//==============================================================================
+
+bool WeightSensor::noise_level_diagnostic() const {
+    // Check noise level using same threshold and window as grind control settling
+    float std_dev_g = get_standard_deviation_g(GRIND_SCALE_PRECISION_SETTLING_TIME_MS);
+    bool currently_settled = std_dev_g < GRIND_SCALE_SETTLING_TOLERANCE_G;
+    
+    unsigned long now = millis();
+    
+    if (!currently_settled) {
+        // Reading is not settled
+        if (!currently_not_settled) {
+            // Just started being not settled - begin timing
+            not_settled_start_time = now;
+            currently_not_settled = true;
+        }
+        
+        // Show "Noisy" only after 2000ms of sustained instability
+        if (now - not_settled_start_time >= 2000) {
+            display_noisy_state = true;  // Show "Noisy"
+        }
+        // else: keep showing previous state during 3s grace period
+        
+    } else {
+        // Reading is settled - immediate recovery
+        currently_not_settled = false;
+        display_noisy_state = false;  // Show "Yes"
+    }
+    
+    // Return noise level assessment (true = "OK", false = "Too High")
+    return !display_noisy_state;
 }
 
 //==============================================================================

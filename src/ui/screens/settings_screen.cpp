@@ -158,7 +158,7 @@ void SettingsScreen::create_info_page(lv_obj_t* parent) {
     
     create_data_label(parent, "Std Dev (g):", &std_dev_g_label);
     create_data_label(parent, "Std Dev (ADC):", &std_dev_adc_label);
-    create_data_label(parent, "Under threshold:", &threshold_ok_label);
+    create_data_label(parent, "Noise level:", &threshold_ok_label);
     
     create_separator(parent);
    
@@ -320,9 +320,9 @@ void SettingsScreen::update_info(const WeightSensor* weight_sensor, unsigned lon
     if (now - last_std_dev_update >= 1000) {  // Update every 1 second
         last_std_dev_update = now;
         
-        // Get standard deviations with 4 decimal precision using 1000ms window
-        float std_dev_g = weight_sensor->get_standard_deviation_g(1000);  // 1000ms window
-        int32_t std_dev_adc = weight_sensor->get_standard_deviation_adc(1000);  // 1000ms window
+        // Get standard deviations using same window as grind control precision settling
+        float std_dev_g = weight_sensor->get_standard_deviation_g(GRIND_SCALE_PRECISION_SETTLING_TIME_MS);  // 500ms window (same as grind control)
+        int32_t std_dev_adc = weight_sensor->get_standard_deviation_adc(GRIND_SCALE_PRECISION_SETTLING_TIME_MS);  // 500ms window
         
         char std_dev_g_text[32];
         snprintf(std_dev_g_text, sizeof(std_dev_g_text), "%.4f", std_dev_g);
@@ -330,13 +330,15 @@ void SettingsScreen::update_info(const WeightSensor* weight_sensor, unsigned lon
         
         set_label_text_int(std_dev_adc_label, std_dev_adc);
         
-        // Check if noise floor is under the settling tolerance threshold
-        bool under_threshold = std_dev_g < GRIND_SCALE_SETTLING_TOLERANCE_G;
-        if (under_threshold) {
-            lv_label_set_text(threshold_ok_label, "Yes");
+        // Check noise level using WeightSensor diagnostic method
+        bool noise_acceptable = weight_sensor->noise_level_diagnostic();
+        
+        // Update UI based on noise level assessment
+        if (noise_acceptable) {
+            lv_label_set_text(threshold_ok_label, "OK");
             lv_obj_set_style_text_color(threshold_ok_label, lv_color_hex(THEME_COLOR_TEXT_SECONDARY), 0);
         } else {
-            lv_label_set_text(threshold_ok_label, "No");
+            lv_label_set_text(threshold_ok_label, "Too High");
             lv_obj_set_style_text_color(threshold_ok_label, lv_color_hex(THEME_COLOR_ERROR), 0);
         }
     }

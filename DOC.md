@@ -271,7 +271,7 @@ Main Screen (swipe left/right between tabs, up/down to toggle weight/time mode i
     +-- System Info
     |   |-- Firmware version & build number
     |   |-- Real-time weight sensor data (instant, samples, raw)
-    |   |-- Noise Floor diagnostics (std dev in grams & ADC, threshold check)
+    |   |-- Noise Floor diagnostics (std dev in grams & ADC, noise level indicator - shows if sustained noise will cause slow taring >2s)
     |   |-- Uptime display
     |   \-- Memory usage
     |

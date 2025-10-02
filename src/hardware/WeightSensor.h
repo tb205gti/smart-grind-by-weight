@@ -61,6 +61,11 @@ private:
     float last_significant_weight;
     uint32_t last_weight_activity_time;
     
+    // Stable reading diagnostic tracking (sustained settling check for UI)
+    mutable unsigned long not_settled_start_time;
+    mutable bool currently_not_settled;
+    mutable bool display_noisy_state;  // True = show "Noisy", False = show "Yes"
+    
     // WeightSamplingTask integration (RealtimeController removed)
     
     // Single calibration conversion point
@@ -125,6 +130,12 @@ public:
     // Unified settling methods with window_ms
     bool check_settling_complete(uint32_t window_ms, float* settled_weight_out = nullptr);
     void cancel_settling();
+    
+    // Load cell noise level diagnostic for UI display
+    // Returns true if noise level is acceptable (shows "OK"), false if excessive (shows "Too High")
+    // Uses sustained 3-second check to filter out brief motor/electrical interference
+    // Same settling parameters as grind control (500ms window, 0.010g threshold)
+    bool noise_level_diagnostic() const;
     
     // Raw ADC data access (for advanced filtering and diagnostics)
     int32_t get_raw_adc_instant() const;                    // Latest raw ADC reading
