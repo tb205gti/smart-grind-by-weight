@@ -1,5 +1,7 @@
 #pragma once
 #include <lvgl.h>
+#include <array>
+#include <functional>
 
 // Forward declaration
 class UIManager;
@@ -37,20 +39,27 @@ public:
         CAL_PLUS,
         CAL_MINUS,
         CONFIRM,
-        CONFIRM_CANCEL
+        CONFIRM_CANCEL,
+        COUNT
     };
-    
+
+    using EventHandler = std::function<void(lv_event_t*)>;
+
     static void set_ui_manager(UIManager* mgr);
-    
+
     // Single unified event handler
     static void dispatch_event(lv_event_t* e);
-    
+
     // Special handler for profile long press (needed for ready_screen compatibility)
     static void profile_long_press_handler(lv_event_t* e);
-    
+
     // Public handle_event for direct access
     static void handle_event(EventType event_type, lv_event_t* e);
-    
+
+    // Controller registration hook
+    static void register_handler(EventType event_type, EventHandler handler);
+
 private:
     static UIManager* ui_manager;
+    static std::array<EventHandler, static_cast<size_t>(EventType::COUNT)> custom_handlers;
 };

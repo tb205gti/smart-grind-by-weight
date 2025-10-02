@@ -423,8 +423,9 @@ void TaskManager::ui_render_task_impl() {
             // Drain BLE UI status messages here to keep LVGL single-threaded
             if (bluetooth_manager) {
                 char status[64];
-                while (bluetooth_manager->dequeue_ui_status(status, sizeof(status))) {
-                    ui_manager->update_ota_status(status);
+                auto* ota = ui_manager->get_ota_data_export_controller();
+                while (ota && bluetooth_manager->dequeue_ui_status(status, sizeof(status))) {
+                    ota->update_status(status);
                 }
             }
             ui_manager->update();

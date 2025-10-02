@@ -1,5 +1,7 @@
 #pragma once
 #include <lvgl.h>
+#include <functional>
+#include <memory>
 #include "components/blocking_overlay.h"
 #include "components/ui_operations.h"
 #include "screens/ready_screen.h"
@@ -11,6 +13,16 @@
 #include "screens/ota_screen.h"
 #include "screens/ota_update_failed_screen.h"
 #include "event_bridge_lvgl.h"
+#include "controllers/calibration_controller.h"
+#include "controllers/confirm_controller.h"
+#include "controllers/edit_controller.h"
+#include "controllers/grinding_controller.h"
+#include "controllers/jog_adjust_controller.h"
+#include "controllers/ota_data_export_controller.h"
+#include "controllers/ready_controller.h"
+#include "controllers/screen_timeout_controller.h"
+#include "controllers/settings_controller.h"
+#include "controllers/status_indicator_controller.h"
 #include "../system/state_machine.h"
 #include "../controllers/profile_controller.h"
 #include "../controllers/grind_controller.h"
@@ -33,17 +45,17 @@
  * - Stage 4 (6s+): 20.3g/s (64ms intervals, 13x multiplier)
  */
 
-// Forward declarations for event handlers
-class ProfileEventHandler;
-class GrindEventHandler;
-class SettingsEventHandler;
-class CalibrationEventHandler;
-
 class UIManager {
-    friend class ProfileEventHandler;
-    friend class GrindEventHandler;
-    friend class SettingsEventHandler;
-    friend class CalibrationEventHandler;
+    friend class ReadyUIController;
+    friend class EditUIController;
+    friend class SettingsUIController;
+    friend class CalibrationUIController;
+    friend class GrindingUIController;
+    friend class ConfirmUIController;
+    friend class StatusIndicatorController;
+    friend class OtaDataExportController;
+    friend class ScreenTimeoutController;
+    friend class JogAdjustController;
     
 private:
     HardwareManager* hardware_manager;
@@ -52,48 +64,32 @@ private:
     GrindController* grind_controller;
     BluetoothManager* bluetooth_manager;
     
-    lv_obj_t* grind_button;
-    lv_obj_t* grind_icon;
-    lv_obj_t* pulse_button;      // Additional pulse button for time mode
-    lv_obj_t* pulse_icon;        // Icon for pulse button
-    lv_obj_t* ble_status_icon;
     lv_timer_t* jog_timer;
-    lv_timer_t* motor_timer;
-    lv_timer_t* grind_complete_timer;
-    lv_timer_t* grind_timeout_timer;
-    
+
     float edit_target;
     float original_target;
     float calibration_weight;
-    float final_grind_weight;
-    int final_grind_progress;
-    float error_grind_weight;
-    int error_grind_progress;
-    char error_message[32];
     int current_tab;
     GrindMode current_mode;
-    bool chart_updates_enabled;
     bool initialized;
     unsigned long jog_start_time;
     int jog_stage;
     int jog_direction;
-    char ota_failed_expected_build[16];
-    bool data_export_active;
-    
-    // Screen timeout state
-    bool screen_dimmed;
-    
-    // Function pointer for pending confirmation action
-    void (*pending_confirm_callback)();
-    
-    // Event handler instances
-    ProfileEventHandler* profile_handler;
-    GrindEventHandler* grind_handler;
-    SettingsEventHandler* settings_handler;
-    CalibrationEventHandler* calibration_handler;
-    
+
     // Static instance pointer for grind event callback
     static UIManager* instance;
+
+    // Controller instances (feature-focused)
+    std::unique_ptr<ReadyUIController> ready_controller_;
+    std::unique_ptr<EditUIController> edit_controller_;
+    std::unique_ptr<GrindingUIController> grinding_controller_;
+    std::unique_ptr<SettingsUIController> settings_controller_;
+    std::unique_ptr<StatusIndicatorController> status_indicator_controller_;
+    std::unique_ptr<CalibrationUIController> calibration_controller_;
+    std::unique_ptr<ConfirmUIController> confirm_controller_;
+    std::unique_ptr<OtaDataExportController> ota_data_export_controller_;
+    std::unique_ptr<ScreenTimeoutController> screen_timeout_controller_;
+    std::unique_ptr<JogAdjustController> jog_adjust_controller_;
 
 public:
     ReadyScreen ready_screen;
@@ -105,52 +101,17 @@ public:
     OTAScreen ota_screen;
     OtaUpdateFailedScreen ota_update_failed_screen;
 
+    ~UIManager();
     void init(HardwareManager* hw_mgr, StateMachine* sm, 
               ProfileController* pc, GrindController* gc, BluetoothManager* bluetooth);
     void update();
     void switch_to_state(UIState new_state);
-    
-    // Event handlers
-    void handle_tab_change(int tab);
-    void handle_profile_long_press();
-    void handle_grind_button();
-    void handle_pulse_button(); // Handle additional pulse button in time mode
-    void handle_edit_save();
-    void handle_edit_cancel();
-    void handle_edit_plus(lv_event_code_t code);
-    void handle_edit_minus(lv_event_code_t code);
-    void handle_settings_calibrate();
-    void handle_settings_reset();
-    void handle_settings_purge();
-    void handle_settings_motor_test();
-    void handle_settings_tare();
-    void handle_settings_back();
-    void handle_settings_refresh_stats();
-    void handle_cal_ok();
-    void handle_cal_cancel();
-    void handle_cal_plus(lv_event_code_t code);
-    void handle_cal_minus(lv_event_code_t code);
-    void handle_ble_toggle();
-    void handle_ble_startup_toggle();
-    void handle_logging_toggle();
-    void handle_grind_mode_swipe_toggle();
-    void handle_grind_mode_radio_button();
-    void handle_brightness_normal_slider();
-    void handle_brightness_normal_slider_released();
-    void handle_brightness_screensaver_slider();
-    void handle_brightness_screensaver_slider_released();
-    void handle_confirm();
-    void handle_confirm_cancel();
-    void handle_grind_layout_toggle();
-    
     // Helper method to show confirmation dialog
-    void show_confirmation(const char* title, const char* message, 
-                          const char* confirm_text, lv_color_t confirm_color,
-                          void (*on_confirm)(), const char* cancel_text = "CANCEL");
-    
-    // Helper methods for brightness settings
-    float get_normal_brightness() const;
-    float get_screensaver_brightness() const;
+    void show_confirmation(const char* title, const char* message,
+                           const char* confirm_text, lv_color_t confirm_color,
+                           std::function<void()> on_confirm,
+                           const char* cancel_text = "CANCEL",
+                           std::function<void()> on_cancel = nullptr);
     
     // Static instance getter
     static UIManager* get_instance() { return instance; }
@@ -159,59 +120,19 @@ public:
     ProfileController* get_profile_controller() { return profile_controller; }
     HardwareManager* get_hardware_manager() { return hardware_manager; }
     GrindController* get_grind_controller() { return grind_controller; }
+    OtaDataExportController* get_ota_data_export_controller() { return ota_data_export_controller_.get(); }
     void set_current_tab(int tab) { current_tab = tab; }
     
-    // OTA update methods
-    void update_ota_progress(int percent);
-    void update_ota_status(const char* status);
-    void show_ota_update_failed_warning(const char* expected_build);
-    void set_ota_failure_info(const char* expected_build);
-    
-    // Data export methods
-    void start_data_export_ui();
-    void update_data_export_progress();
-    void stop_data_export_ui();
-    
-    // Event-driven grind updates
-    static void grind_event_handler(const GrindEventData& event_data);
+    void set_background_active(bool active);
     
 
 private:
     void create_ui();
-    void create_grind_button();
-    void create_pulse_button();
-    void create_ble_status_icon();
-    void update_ble_status_icon();
-    void refresh_ready_profiles();
-    void setup_event_handlers();
-    void update_grind_button_icon();
-    void update_button_layout(); // Switch between single/split button layout
-    void reset_grind_complete_timer(); // Reset the 60s auto-return timer
-    void update_edit_target_display();
-    void update_grinding_targets();
-    void start_jog_timer(int direction);
-    void stop_jog_timer();
     
     // State-specific update methods
-    void update_settings_state();
-    void update_calibration_state();
-    void update_grind_complete_state();
-    void update_grind_timeout_state();
-    void update_screen_timeout_state();
-    
-    void jog_timer_cb(lv_timer_t* timer);
-    void motor_timer_cb(lv_timer_t* timer);
-    void grind_complete_timeout_cb(lv_timer_t* timer);
-    void grind_timeout_timer_cb(lv_timer_t* timer);
 
-    void toggle_mode();
-    lv_color_t get_default_background_color();
-    bool is_mock_driver_active();
+    // Controller wiring helpers
+    void init_controllers();
+    void register_controller_events();
     
-    
-    // Static wrappers for LVGL callbacks
-    static void static_jog_timer_cb(lv_timer_t* timer);
-    static void static_motor_timer_cb(lv_timer_t* timer);
-    static void static_grind_complete_timeout_cb(lv_timer_t* timer);
-    static void static_grind_timeout_timer_cb(lv_timer_t* timer);
 };

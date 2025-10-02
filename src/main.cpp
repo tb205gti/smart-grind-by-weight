@@ -32,6 +32,9 @@ static uint32_t core1_last_heartbeat_time = 0;
 
 void setup() {
     Serial.begin(HW_SERIAL_BAUD_RATE);
+#ifdef UI_DEBUG_SERIAL_DELAY_MS
+    delay(UI_DEBUG_SERIAL_DELAY_MS);
+#endif
     
     // Log reset reason to help diagnose unexpected resets/freeze scenarios
     esp_reset_reason_t rr = esp_reset_reason();
@@ -86,12 +89,16 @@ void setup() {
     
     // Store OTA failure info in ui_manager if needed
     if (ota_failed) {
-        ui_manager.set_ota_failure_info(failed_ota_build.c_str());
+        if (auto* ota = ui_manager.get_ota_data_export_controller()) {
+            ota->set_failure_info(failed_ota_build.c_str());
+        }
     }
     
     // Set up UI status callback to avoid circular dependency
     bluetooth_manager.set_ui_status_callback([](const char* status) {
-        ui_manager.update_ota_status(status);
+        if (auto* ota = ui_manager.get_ota_data_export_controller()) {
+            ota->update_status(status);
+        }
     });
     
     // Enable BLE by default during bootup with 2-minute timeout
