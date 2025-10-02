@@ -258,6 +258,7 @@ function prepareFirmwareData(firmwareData) {
 // Main firmware flash function
 async function flashFirmware() {
     const firmwareSelect = document.getElementById('firmwareSelect');
+    const flashBtn = document.getElementById('flashBtn');
     
     if (!firmwareSelect) {
         updateStatus('Firmware selection element not found', 'error');
@@ -274,6 +275,9 @@ async function flashFirmware() {
         updateStatus('Not connected to device', 'error');
         return;
     }
+    
+    // Disable and gray out flash button
+    flashBtn.disabled = true;
     
     try {
         // Download firmware
@@ -404,6 +408,9 @@ async function flashFirmware() {
         updateStatus(`Flash failed: ${error.message}`, 'error');
         console.error('Flash error:', error);
         
+        // Re-enable flash button on error
+        flashBtn.disabled = false;
+        
         // Try to abort OTA on error
         try {
             if (otaService) {
@@ -414,6 +421,21 @@ async function flashFirmware() {
         } catch (abortError) {
             console.error('Could not send abort command:', abortError);
         }
+    }
+}
+
+// Update OTA selected firmware display when dropdown changes
+function updateOtaSelectedFirmware() {
+    const select = document.getElementById('firmwareSelect');
+    const selectedDisplay = document.getElementById('otaSelectedFile');
+    const firmwareUrl = select.value;
+    
+    if (firmwareUrl) {
+        selectedDisplay.textContent = `Selected: ${firmwareUrl}`;
+        selectedDisplay.className = 'status info';
+        selectedDisplay.style.display = 'block';
+    } else {
+        selectedDisplay.style.display = 'none';
     }
 }
 
@@ -533,6 +555,10 @@ async function loadReleases() {
         
         if (otaSelect.children.length === 0) {
             otaSelect.innerHTML = '<option value="">No firmware available</option>';
+        } else {
+            // Auto-select the first (newest) firmware and update display immediately
+            otaSelect.selectedIndex = 0;
+            updateOtaSelectedFirmware();
         }
         
     } catch (error) {

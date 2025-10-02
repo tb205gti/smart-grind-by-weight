@@ -281,7 +281,7 @@
                         Show release candidates (RC, beta, alpha)
                     </label>
                 </div>
-                <select id="firmwareSelect">
+                <select id="firmwareSelect" onchange="updateOtaSelectedFirmware()">
                     <option value="">Loading releases...</option>
                 </select>
             </div>
@@ -293,6 +293,10 @@
             
             <button class="btn" id="connectBtn" onclick="connectDevice()">Connect to Device</button>
             <button class="btn" id="flashBtn" onclick="flashFirmware()" disabled>Flash Firmware</button>
+            
+            <div id="otaSelectedFile" class="status info" style="display: none;">
+                No firmware selected
+            </div>
             
             <div id="status" class="status info" style="display: none;">
                 Ready to connect...
