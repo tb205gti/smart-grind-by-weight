@@ -182,6 +182,10 @@ public:
     // Weight activity timing (for screen timeout reset)
     uint32_t get_ms_since_last_weight_activity() const;
     
+    // Diagnostic methods for noise analysis
+    float get_standard_deviation_g(uint32_t window_ms = 500) const;     // Standard deviation in grams
+    int32_t get_standard_deviation_adc(uint32_t window_ms = 500) const; // Standard deviation in raw ADC units
+    
 #if SYS_ENABLE_REALTIME_HEARTBEAT
     // SPS performance monitoring
     void record_sample_timestamp();                                  // Record when a sample was taken (called by Core 0)

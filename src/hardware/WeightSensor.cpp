@@ -628,6 +628,22 @@ uint32_t WeightSensor::get_ms_since_last_weight_activity() const {
     }
 }
 
+//==============================================================================
+// DIAGNOSTIC METHODS
+//==============================================================================
+
+float WeightSensor::get_standard_deviation_g(uint32_t window_ms) const {
+    // Get raw standard deviation and convert to grams
+    float raw_std_dev = raw_filter.get_standard_deviation_raw(window_ms);
+    return raw_std_dev / cal_factor;  // Convert from raw ADC units to grams
+}
+
+int32_t WeightSensor::get_standard_deviation_adc(uint32_t window_ms) const {
+    // Get raw standard deviation as integer
+    float raw_std_dev = raw_filter.get_standard_deviation_raw(window_ms);
+    return (int32_t)raw_std_dev;
+}
+
 // HX711_ADC exact tare methods
 void WeightSensor::tareNoDelay() {
     doTare = 1;

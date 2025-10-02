@@ -156,9 +156,13 @@ void SettingsScreen::create_info_page(lv_obj_t* parent) {
     create_separator(parent);
     
     create_data_label(parent, "Instant:", &instant_label);
-    create_data_label(parent, "Smooth:", &smooth_label);
     create_data_label(parent, "Samples:", &samples_label);
     create_data_label(parent, "Raw:", &raw_label);
+    
+    create_separator(parent);
+    
+    create_data_label(parent, "Std Dev (g):", &std_dev_g_label);
+    create_data_label(parent, "Std Dev (ADC):", &std_dev_adc_label);
 }
 
 
@@ -306,9 +310,18 @@ void SettingsScreen::update_info(const WeightSensor* weight_sensor, unsigned lon
     if (!visible) return;
 
     set_label_text_float(instant_label, weight_sensor->get_instant_weight(), "g");
-    set_label_text_float(smooth_label, weight_sensor->get_weight_high_latency(), "g");
     set_label_text_int(samples_label, weight_sensor->get_sample_count());
     set_label_text_int(raw_label, weight_sensor->get_raw_adc_instant());
+    
+    // Get standard deviations with 4 decimal precision
+    float std_dev_g = weight_sensor->get_standard_deviation_g(500);  // 500ms window
+    int32_t std_dev_adc = weight_sensor->get_standard_deviation_adc(500);  // 500ms window
+    
+    char std_dev_g_text[32];
+    snprintf(std_dev_g_text, sizeof(std_dev_g_text), "%.4f", std_dev_g);
+    lv_label_set_text(std_dev_g_label, std_dev_g_text);
+    
+    set_label_text_int(std_dev_adc_label, std_dev_adc);
 
     
     // Update uptime - use compact format to avoid horizontal scrolling

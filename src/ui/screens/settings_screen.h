@@ -23,9 +23,10 @@ private:
     lv_obj_t* uptime_label;
     lv_obj_t* memory_label;
     lv_obj_t* instant_label;
-    lv_obj_t* smooth_label;
     lv_obj_t* samples_label;
     lv_obj_t* raw_label;
+    lv_obj_t* std_dev_g_label;
+    lv_obj_t* std_dev_adc_label;
     lv_obj_t* sessions_label;
     lv_obj_t* events_label;
     lv_obj_t* measurements_label;
