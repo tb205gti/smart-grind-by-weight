@@ -82,6 +82,9 @@ If you want to try a less aggressive approach first:
 ### Root Cause
 Extended taring due to load cell noise prevents grinding from completing within 30-second limit.
 
+### Diagnosis
+Check Settings → System Info → "Noise Floor" section. If "Under threshold: No" (red text), your load cell noise exceeds the settling tolerance.
+
 ### Resolution
 1. **Check load cell wiring:**
    - Verify shielding wire connection per wiring diagram

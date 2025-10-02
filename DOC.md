@@ -270,9 +270,10 @@ Main Screen (swipe left/right between tabs, up/down to toggle weight/time mode i
     |
     +-- System Info
     |   |-- Firmware version & build number
+    |   |-- Real-time weight sensor data (instant, samples, raw)
+    |   |-- Noise Floor diagnostics (std dev in grams & ADC, threshold check)
     |   |-- Uptime display
-    |   |-- Memory usage
-    |   \-- Real-time weight sensor data (instant, smooth, samples, raw)
+    |   \-- Memory usage
     |
     +-- Bluetooth
     |   |-- Bluetooth toggle (30m timer)
