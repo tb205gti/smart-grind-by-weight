@@ -19,17 +19,16 @@ https://github.com/user-attachments/assets/e20ce3e2-417e-4a3b-bb48-05591fce9418
 </table>
 
 > **⚠️ Newly Released Mod - Buyer Beware!**  
-> This is a **recently released modification project** that transforms grinders into smart grind-by-weight systems. While functional and free/open source, it's an **experimental mod** that requires technical skill to build and may have rough edges. **Build at your own risk** - this is not a polished commercial product!
+> This is a **recently released modification project** that transforms grinders into smart grind-by-weight systems. While functional and free/open source, it's should be considered an **experimental mod** that requires technical skill to build and may have rough edges. **Build at your own risk** !
 
 
-
-The Smart Grind-by-Weight is a user-friendly, touch interface-driven, highly accurate open source grinder modification that transforms any grinder with a motor relay accepting 3.3V logic levels into an intelligent grind-by-weight system. Originally developed for the Eureka Mignon Specialita, the system can be easily adapted for other grinders.
+The Smart Grind-by-Weight is a user-friendly, touch interface-driven, highly accurate open source grinder modification that can transforms any grinder (with a accesable motor relay) into an intelligent grind-by-weight system. Originally developed for the Eureka Mignon Specialita, the system can be easily adapted for other grinders.
 
 **The concept is simple:** Perform a "brain swap" on your grinder. Replace the original controller with our intelligent ESP32-S3 controller and add a precision load cell to the mix.
 
 **Upgrade cost:** €30-40 in parts  
 **Target accuracy:** ±0.05g tolerance  
-**Still supports**: Original grind-by-time mode is also available
+**No regrets**: No permanent modifications, and original grind-by-time mode is also available
 
 ---
 
@@ -38,7 +37,7 @@ The Smart Grind-by-Weight is a user-friendly, touch interface-driven, highly acc
 - **User-friendly interface** with 3 profiles: Single, Double, Custom
 - **Beautiful display** with simple graphics or detailed charts (easily switchable)
 - **High accuracy**: ±0.05g error tolerance  
-- **Zero-shot learning**: Algorithm adapts instantly to any grind settings without manual tuning
+- **Zero-shot learning**: Algorithm adapts instantly to any grind size, bean setting, humidity etc. without manual tuning
 - **Original timed run preserved** – there is a setting to enable the original Grind-By-Time mode
 - **BLE OTA updates** for firmware
 - **Advanced analytics** using BLE data transfer and Python Streamlit reports
@@ -68,19 +67,20 @@ flowchart LR
 
 ### For Users - Using Pre-built Firmware
 
-1. **Get the parts** - ESP32-S3 AMOLED display + HX711 + load cell (~€35 total)
-2. **3D print the mounting parts** - All STL files included, no supports needed
-3. **Download the latest firmware** - Go to **[Releases](https://github.com/jaapp/smart-grind-by-weight/releases)** and download the latest firmware package
+1. **Get the parts** - ESP32-S3 AMOLED display + HX711 + load cell (~€35 total) → See [Parts List](DOC.md#-parts-list)
+2. **3D print the mounting parts** - All STL files included, no supports needed → See [3D Printed Parts](DOC.md#3d-printed-parts)
+3. **Flash firmware & calibrate** - [Web Flasher](https://jaapp.github.io/smart-grind-by-weight) (USB + BLE) or command line
 4. **Follow the assembly video** - [Complete Eureka build process](https://youtu.be/-kfKjiwJsGM)
-5. **Flash firmware & calibrate** - [Web Flasher](https://jaapp.github.io/smart-grind-by-weight) (USB + BLE) or command line
+
+**Ready to build?** → See **[DOC.md](DOC.md)** for complete build instructions, parts list, and usage guide.
+
+---
 
 ### For Developers - Building from Source
 
 If you want to modify the code or contribute to development, see **[DEVELOPMENT.md](DEVELOPMENT.md)** for build instructions.
 
 **Design Files:** The complete Fusion 360 design is available at `3d_files/smart-grind-by-weight. Eureka Mignon.f3z` for modification and adaptation to other grinder models.
-
-**Ready to build?** → See **[DOC.md](DOC.md)** for complete build instructions, parts list, and usage guide.
 
 ---
 
@@ -113,7 +113,7 @@ My goal with this project was to get real-life experience coding with AI agents.
 
 What I've learned so far is that "vibe coding" with AI is great for POCs and testing theories. But afterward you must pivot and reimplement features while keeping a close eye on the architecture the AI produces. Otherwise you'll get stuck at dead ends that require painful refactoring (been there, done that). 
 
-In this project, that's most obvious when looking at the UI and state management - it's a bit cluttered in places. But I'm very happy with the end result and I'm releasing the project as is. It eliminates grind weight variability from the espresso equation, bringing you one step closer to dialing in perfect shots.
+In this project, that's most obvious when at state management - it's a bit cluttered in places. I'm very happy with the end result and I'm releasing the project as is. It eliminates grind weight variability from the espresso equation, bringing you one step closer to dialing in perfect shots.
 
 **Project Status**: This project is shared 'as-is' and I have limited availability for support. While I'm happy to share what I've built, please understand that troubleshooting and feature requests may receive limited attention.
 

@@ -27,8 +27,8 @@ Complete build instructions, parts list, and usage guide for the Smart Grind-by-
 - **[Waveshare ESP32-S3 1.64inch AMOLED Touch Display](https://www.waveshare.com/esp32-s3-touch-amoled-1.64.htm)** - Main controller
 - **HX711 ADC module** - Load cell amplifier  
 - **MAVIN or T70 load cell** (0.3 - 1KG range) - Don't use cheap unshielded small load cells, you'll hurt the accuracy
-  - **0.3kg**: Suitable for dosing cups only
-  - **1kg**: Recommended if adapting for portafilter holder use
+  - **1kg**: Recommended. Suits portafilter use cases.
+  - **0.3kg**: Only suitable for dosing cups.
   - Examples: 
     - [AliExpress T70](https://nl.aliexpress.com/item/1005009409460619.html)
     - [TinyTronics MAVIN](https://www.tinytronics.nl/en/sensors/weight-pressure-force/load-cells/mavin-load-cell-0.3kg)
@@ -50,8 +50,6 @@ All parts designed to print **without supports**. Keep the orientation of the ST
 - **Material**: PETG (preferred) - Flexible enough for snap fits to work properly
 - **Layer Height**: 0.2mm
 - **Alternative**: PLA might work but will offer a reduced experience due to brittleness
-
-> **📅 Update 21-09-2025:** Important fit tweak for T70 load cell users. Updated Cup holder.stl and Back plate.stl to accommodate T70 load cells. All users with T70 load cells must use the latest 3D files for proper fit.
 
 - **[Screen adapter](3d_files/Waveshare%20AMOLED%201_64%20adapter.stl)** - Mounts Waveshare screen to Eureka location
 - **[Back plate](3d_files/Back%20plate.stl)** - Mounts to Eureka and holds HX711/load cell  
@@ -126,12 +124,12 @@ ESP32-S3 GND       →    Pin 4 (Ground)
 
 ### Installation Steps
 
-1. **Flash the firmware** on the Waveshare board (see Build Instructions below)
+1. **Flash the firmware** on the Waveshare board (see Firmware Instructions below)
 2. **Add the 1000μF capacitor** between 5V and ground (protects against brownouts)
 3. **Create HX711 to Waveshare connection:**
    - Add angled pin headers to HX711 (VCC, GND, DOUT, SCK pins)
    - Connect dupont cables to Waveshare board
-   - Load cell can be directly soldered to HX711
+   - Load cell can be directly soldered to HX711 (Make the wires as short as possible. Connect shield wire as well to GND)
 4. **For Eureka Mignon assembly:**
    - Disassemble top plate and front plate
    - Remove the button and store it (not needed)
@@ -145,6 +143,7 @@ ESP32-S3 GND       →    Pin 4 (Ground)
    - Add 3D printed cover plate and screw down
    - Add 3D printed dosing cup holder on load cell and screw down
    - Hide screws with 3D printed screw covers
+5. **Calibrate load cell** (see [Initial Calibration](#️-initial-calibration)) 
 
 ---
 
@@ -202,6 +201,17 @@ After flashing firmware, calibrate the load cell for accurate measurements:
    - Press OK to complete
 
 **Tip**: A coffee mug with water makes ideal calibration weight - weigh it on kitchen scale first.
+
+### Noise Floor Diagnostics
+
+Access via **Settings → System Info → Noise Floor diagnostics**.
+
+**Three values displayed:**
+1. **Standard Deviation (grams)** - Noise level in calibrated weight units
+2. **Standard Deviation (ADC)** - Raw sensor noise values  
+3. **Noise Level Indicator** - Shows if noise will cause slow taring (>2s) or timeouts
+
+**Important:** The noise diagnostic is based on calibrated gram values - you must calibrate the sensor first as raw ADC values are meaningless. High noise readings indicate wiring issues (check shield connection, use shorter wire leads). Read diagnostics in a stable, vibration-free environment for accurate assessment.
 
 ---
 
@@ -271,7 +281,7 @@ Main Screen (swipe left/right between tabs, up/down to toggle weight/time mode i
     +-- System Info
     |   |-- Firmware version & build number
     |   |-- Real-time weight sensor data (instant, samples, raw)
-    |   |-- Noise Floor diagnostics (std dev in grams & ADC, noise level indicator - shows if sustained noise will cause slow taring >2s)
+    |   |-- Noise Floor diagnostics (see [Noise Floor Diagnostics](#noise-floor-diagnostics) for details)
     |   |-- Uptime display
     |   \-- Memory usage
     |
@@ -312,29 +322,7 @@ During Grinding:
 
 ## 🔵 Bluetooth Connectivity
 
-### Startup Behavior
-- **Bluetooth startup is configurable** in **Settings → Bluetooth → Startup**
-- When enabled: **Bluetooth automatically enables for 5 minutes** after power on
-- When disabled: Bluetooth remains off at startup (can still be enabled manually)
-- Indicated by blue Bluetooth symbol in top-right corner
-
-### Manual Control
-- Enable Bluetooth manually in **Settings → Bluetooth**
-- **30-minute timer** when manually enabled
-- Toggle on/off as needed
-- Connection status and auto-disable timer displayed in real-time
-
-### Grind Data Logging
-- **Grind session logging is configurable** in **Settings → Data → Logging**
-- When enabled: Grind sessions are saved to flash storage for analysis
-- When disabled: Real-time grinding still works, but no session files are written to disk
-- Default setting: **Disabled** (to prevent unnecessary flash storage usage)
-
-### Uses
-- **BLE OTA firmware updates** - Wireless firmware flashing
-- **Data export** - Transfer grind session data to computer
-- **Analytics** - Real-time data streaming for analysis
-- **Device management** - Remote configuration and monitoring
+Bluetooth can be configured in **Settings → Bluetooth** with optional auto-startup (5-minute timer) or manual control (30-minute timer when manually enabled). The blue Bluetooth symbol in the top-right corner indicates when active. Bluetooth enables wireless firmware updates via BLE OTA, grind data export and analytics, and device management. Grind session logging is configurable in **Settings → Data → Logging** (disabled by default to prevent flash wear) and must be enabled before grinding to save session data for later analysis.
 
 ---
 
@@ -407,12 +395,7 @@ Yes, but requires modifications: use 1kg load cell (vs 0.3kg) for better accurac
 
 ## 🔧 Troubleshooting
 
-For common build and setup issues, see **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** which covers:
-
-- Unknown board ID errors in PlatformIO
-- Project initialization issues with pioarduino platform
-- Platform package cache problems
-- Clean build procedures
+For common build and setup issues, see **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)**.
 
 ---
 

@@ -83,7 +83,7 @@ If you want to try a less aggressive approach first:
 Extended taring due to load cell noise prevents grinding from completing within 30-second limit.
 
 ### Diagnosis
-Check Settings → System Info → "Noise Floor" section. If "Noise level: Too High" (red text) appears persistently, your load cell has sustained noise issues that will cause slow taring (>2 seconds).
+Check Settings → System Info → "Noise Floor" section (see [Noise Floor Diagnostics](DOC.md#noise-floor-diagnostics) for details). If "Noise level: Too High" (red text) appears persistently, your load cell has sustained noise issues that will cause slow taring (>2 seconds).
 
 ### Resolution
 1. **Check load cell wiring:**

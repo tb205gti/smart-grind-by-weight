@@ -34,24 +34,36 @@ This automatically creates a virtual environment and installs all required depen
 
 ## 🔧 Build Targets
 
-The project has two main build targets:
+The project has three build targets:
 
 ### Production Target: `waveshare-esp32s3-touch-amoled-164`
 - **Use case:** Real hardware with load cell and grinder connected
 - **Hardware:** Full ESP32-S3 + HX711 + load cell + grinder motor relay
 - **Features:** All functionality enabled
+- **Optimizations:** `-Ofast` optimization level for performance
+
+### Debug Target: `waveshare-esp32s3-touch-amoled-164-debug`
+- **Use case:** Development and debugging with real hardware
+- **Hardware:** Full ESP32-S3 + HX711 + load cell + grinder motor relay
+- **Features:**
+  - All functionality enabled
+  - Debug symbols included
+  - 2-second UI serial delay for easier debugging
+  - Serial monitor filters to suppress harmless touch driver errors
 
 ### Mock/Development Target: `waveshare-esp32s3-touch-amoled-164-mock`
-- **Use cases:** 
+- **Use cases:**
   - Development without connected load cell or grinder
-  - Or; Testing with device installed in grinder without wasting beans or taxing the motor
+  - Testing with device installed in grinder without wasting beans or taxing the motor
 - **Hardware:** Can run on just the ESP32-S3 Waveshare board (without HX711 or grinder) OR with full hardware installed
-- **Features:** 
+- **Features:**
   - Simulated load cell readings (green background indicates mock HX711 driver is active)
   - Mock grinder motor (visual indicator instead of relay activation)
+  - Debug features enabled
+
 **Mock mode benefits:**
 - Develop UI changes without affecting the actual grinder
-- Bring your waveshare board with you for coding on and testing the road :)
+- Bring your waveshare board with you for coding and testing on the road :)
 - Work on new features without hardware setup or bean waste
 - Capture USB serial messages for debugging
 
@@ -77,9 +89,13 @@ The platform dependency is automatically handled by PlatformIO via the `platform
 python3 tools/grinder.py build
 ```
 
+**Build debug firmware:**
+```bash
+python3 tools/venv/bin/python -m platformio run -e waveshare-esp32s3-touch-amoled-164-debug
+```
+
 **Build mock/development firmware:**
 ```bash
-# Using PlatformIO directly for specific target
 python3 tools/venv/bin/python -m platformio run -e waveshare-esp32s3-touch-amoled-164-mock
 ```
 
@@ -96,6 +112,9 @@ For the first-time setup or when BLE isn't working:
 # Build and upload via USB (production)
 python3 tools/grinder.py build
 python3 tools/venv/bin/python -m platformio run --target upload -e waveshare-esp32s3-touch-amoled-164
+
+# Or for debug target
+python3 tools/venv/bin/python -m platformio run --target upload -e waveshare-esp32s3-touch-amoled-164-debug
 
 # Or for mock target
 python3 tools/venv/bin/python -m platformio run --target upload -e waveshare-esp32s3-touch-amoled-164-mock
@@ -126,21 +145,7 @@ python3 tools/grinder.py info
 
 ## 📦 Release Process
 
-For maintainers creating releases:
-
-```bash
-# Interactive release creation with custom release notes
-python3 tools/grinder.py release
-```
-
-The release process:
-1. **Interactive prompts** for version increment and custom release notes
-2. **Local version update** - commits updated firmware version to repo
-3. **Annotated git tag** - created with your custom release notes
-4. **Automatic GitHub Actions** - builds and creates release with both custom notes and automatic changelog
-
-
-See **[RELEASES.md](RELEASES.md)** for detailed release workflow documentation and release note examples.
+For maintainers creating releases, see **[RELEASES.md](RELEASES.md)** for detailed release workflow documentation.
 
 ---
 
