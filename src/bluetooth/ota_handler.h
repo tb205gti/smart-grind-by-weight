@@ -88,7 +88,7 @@ public:
      * @param is_full_update True for full update, false for delta update
      * @return true if successfully started
      */
-    bool start_ota(uint32_t size, const String& expected_build_number = "", bool is_full_update = false);
+    bool start_ota(uint32_t size, const String& expected_build_number = "", bool is_full_update = false, const String& expected_firmware_version = "");
     
     /**
      * Process received OTA data chunk

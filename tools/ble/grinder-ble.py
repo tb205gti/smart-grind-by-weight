@@ -361,14 +361,19 @@ class GrinderBLETool:
                     current = current.parent
                 if current.name == ".pio":
                     project_dir = current.parent
-                    git_info_path = project_dir / "src" / "config" / "git_info.h"
-                    if git_info_path.exists():
-                        with open(git_info_path, 'r') as f:
-                            content = f.read()
-                            import re
-                            match = re.search(r'#define BUILD_NUMBER (\d+)', content)
-                            if match:
-                                return match.group(1)
+                    # Try both possible locations for git_info.h
+                    git_info_paths = [
+                        project_dir / "include" / "git_info.h",
+                        project_dir / "src" / "config" / "git_info.h"
+                    ]
+                    for git_info_path in git_info_paths:
+                        if git_info_path.exists():
+                            with open(git_info_path, 'r') as f:
+                                content = f.read()
+                                import re
+                                match = re.search(r'#define BUILD_NUMBER (\d+)', content)
+                                if match:
+                                    return match.group(1)
         except Exception:
             pass
         return None

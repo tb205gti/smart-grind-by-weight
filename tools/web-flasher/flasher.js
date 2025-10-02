@@ -240,15 +240,12 @@ async function waitForOtaStatus(expectedStatus, timeoutMs = 30000) {
     });
 }
 
-// Extract build number from firmware URL
-function extractBuildFromUrl(url) {
-    // Try to extract version from GitHub release URL
-    const versionMatch = url.match(/\/releases\/download\/v?(\d+\.\d+\.\d+)/);
+// Extract firmware version from firmware URL
+function extractVersionFromUrl(url) {
+    // Extract version directly from GitHub release URL
+    const versionMatch = url.match(/\/releases\/download\/v?(\d+\.\d+\.\d+(?:-[\w\.]+)?)/);
     if (versionMatch) {
-        // Convert version to simple build number (this is a simplification)
-        const version = versionMatch[1];
-        const parts = version.split('.').map(Number);
-        return String(parts[0] * 100 + parts[1] * 10 + parts[2]);
+        return versionMatch[1];
     }
     return null;
 }
@@ -299,18 +296,21 @@ async function flashFirmware() {
             console.log('Could not read device build number');
         }
         
-        // Extract expected build from URL
-        const expectedBuild = extractBuildFromUrl(firmwareUrl);
-        if (expectedBuild) {
-            updateStatus(`Installing build: #${expectedBuild}`, 'info');
+        // Extract expected version from URL
+        const expectedVersion = extractVersionFromUrl(firmwareUrl);
+        if (expectedVersion) {
+            updateStatus(`Installing version: ${expectedVersion}`, 'info');
         }
         
         // Send OTA start command
         const controlChar = await otaService.getCharacteristic(BLE_OTA_CONTROL_CHAR_UUID);
         const dataChar = await otaService.getCharacteristic(BLE_OTA_DATA_CHAR_UUID);
         
-        // Build start command: [CMD][patch_size:4][is_full_update:1][build_number_length:1][build_number:N]
-        const startData = new ArrayBuffer(1 + 4 + 1 + 1 + (expectedBuild ? expectedBuild.length : 0));
+        // Build start command: [CMD][patch_size:4][is_full_update:1][build_number_length:1][build_number:N][firmware_version_length:1][firmware_version:M]
+        const buildNumberBytes = new TextEncoder().encode("1"); // Web flasher always sends build #1
+        const versionBytes = expectedVersion ? new TextEncoder().encode(expectedVersion) : new Uint8Array(0);
+        
+        const startData = new ArrayBuffer(1 + 4 + 1 + 1 + buildNumberBytes.length + 1 + versionBytes.length);
         const startView = new DataView(startData);
         let offset = 0;
         
@@ -323,13 +323,20 @@ async function flashFirmware() {
         startView.setUint8(offset, 0); // is_full_update = 0 (use delta path with detools patch)
         offset += 1;
         
-        if (expectedBuild) {
-            startView.setUint8(offset, expectedBuild.length);
+        // Always send build number "1" for web flasher
+        startView.setUint8(offset, buildNumberBytes.length);
+        offset += 1;
+        new Uint8Array(startData, offset).set(buildNumberBytes);
+        offset += buildNumberBytes.length;
+        
+        // Send firmware version if available
+        if (expectedVersion) {
+            startView.setUint8(offset, versionBytes.length);
             offset += 1;
-            const buildBytes = new TextEncoder().encode(expectedBuild);
-            new Uint8Array(startData, offset).set(buildBytes);
+            new Uint8Array(startData, offset).set(versionBytes);
+            updateStatus(`Sending expected firmware version: ${expectedVersion}`, 'info');
         } else {
-            startView.setUint8(offset, 0); // no build number
+            startView.setUint8(offset, 0); // no firmware version
         }
         
         await controlChar.writeValue(startData);

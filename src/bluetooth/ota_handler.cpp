@@ -97,7 +97,7 @@ void OTAHandler::restore_normal_power() {
     LOG_BLE("OTA Power: Normal power mode restored\n");
 }
 
-bool OTAHandler::start_ota(uint32_t size, const String& expected_build_number, bool is_full_update) {
+bool OTAHandler::start_ota(uint32_t size, const String& expected_build_number, bool is_full_update, const String& expected_firmware_version) {
     LOG_OTA_DEBUG("start_ota() called - size=%lu, build=%s, full=%d\n", 
                   (unsigned long)size, expected_build_number.c_str(), is_full_update);
     
@@ -115,12 +115,19 @@ bool OTAHandler::start_ota(uint32_t size, const String& expected_build_number, b
     LOG_OTA_DEBUG("patch_size=%lu, received_size=%lu, is_full_update=%d\n", 
                   (unsigned long)patch_size, (unsigned long)received_size, this->is_full_update);
     
-    // Store expected build number for post-reboot verification
+    // Store expected build number and firmware version for post-reboot verification
     if (!expected_build_number.isEmpty() && preferences) {
         preferences->putString("new_build_nr", expected_build_number);
         LOG_OTA_DEBUG("Stored expected build number: %s\n", expected_build_number.c_str());
     } else {
         LOG_OTA_DEBUG("No expected build number to store\n");
+    }
+    
+    if (!expected_firmware_version.isEmpty() && preferences) {
+        preferences->putString("new_firmware_ver", expected_firmware_version);
+        LOG_OTA_DEBUG("Stored expected firmware version: %s\n", expected_firmware_version.c_str());
+    } else if (expected_build_number.isEmpty()) {
+        LOG_OTA_DEBUG("No expected firmware version to store\n");
     }
     
     // Reconfigure task watchdog for OTA process with extended timeout
@@ -343,21 +350,44 @@ String OTAHandler::check_ota_failure_after_boot() {
     }
     
     String expected_build = preferences->getString("new_build_nr", "");
-    if (expected_build.isEmpty()) {
+    String expected_version = preferences->getString("new_firmware_ver", "");
+    
+    if (expected_build.isEmpty() && expected_version.isEmpty()) {
         return "";
     }
     
     int current_build = BUILD_NUMBER;
-    int expected_build_num = expected_build.toInt();
+    String current_version = BUILD_FIRMWARE_VERSION;
     
-    if (current_build < expected_build_num) {
-        LOG_BLE("OTA: Patch failed - expected build #%d, got #%d\n", 
-                     expected_build_num, current_build);
-        preferences->remove("new_build_nr");
-        return expected_build;
-    } else if (current_build >= expected_build_num) {
-        preferences->remove("new_build_nr");
+    // Check build number first (for local Python builds)
+    if (!expected_build.isEmpty()) {
+        int expected_build_num = expected_build.toInt();
+        if (current_build < expected_build_num) {
+            LOG_BLE("OTA: Build number check failed - expected #%d, got #%d\n", 
+                         expected_build_num, current_build);
+            preferences->remove("new_build_nr");
+            preferences->remove("new_firmware_ver");
+            return expected_build;
+        } else if (current_build >= expected_build_num) {
+            LOG_BLE("OTA: Build number check passed - expected #%d, got #%d\n", 
+                         expected_build_num, current_build);
+            preferences->remove("new_build_nr");
+            preferences->remove("new_firmware_ver");
+            return "";
+        }
     }
     
+    // Check firmware version (for web builds that send actual version strings)
+    if (!expected_version.isEmpty() && expected_version != current_version) {
+        LOG_BLE("OTA: Version check failed - expected v%s, got v%s\n", 
+                     expected_version.c_str(), current_version.c_str());
+        preferences->remove("new_build_nr");
+        preferences->remove("new_firmware_ver");
+        return expected_version;  // Return expected version for display
+    }
+    
+    // Clean up if we get here (successful update)
+    preferences->remove("new_build_nr");
+    preferences->remove("new_firmware_ver");
     return "";
 }

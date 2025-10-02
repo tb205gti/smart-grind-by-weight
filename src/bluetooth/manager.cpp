@@ -650,15 +650,29 @@ void BluetoothManager::handle_ota_control_command(BLECharacteristic* characteris
                 
                 // Parse build number if present
                 String expected_build = "";
+                String expected_firmware_version = "";
+                size_t offset = 7;
+                
                 if (data.length() > 6) {
                     uint8_t build_length = data[6];
-                    if (build_length > 0 && data.length() >= 7 + build_length) {
-                        expected_build = String(data.c_str() + 7, build_length);
+                    if (build_length > 0 && data.length() >= offset + build_length) {
+                        expected_build = String(data.c_str() + offset, build_length);
                         log("Bluetooth OTA: Expected build after update: %s\n", expected_build.c_str());
+                        offset += build_length;
+                    }
+                    
+                    // Parse firmware version if present (backwards compatible extension)
+                    if (data.length() > offset) {
+                        uint8_t version_length = data[offset];
+                        offset++;
+                        if (version_length > 0 && data.length() >= offset + version_length) {
+                            expected_firmware_version = String(data.c_str() + offset, version_length);
+                            log("Bluetooth OTA: Expected firmware version after update: %s\n", expected_firmware_version.c_str());
+                        }
                     }
                 }
                 
-                if (ota_handler.start_ota(patch_size, expected_build, is_full_update)) {
+                if (ota_handler.start_ota(patch_size, expected_build, is_full_update, expected_firmware_version)) {
                     set_ota_status(BLE_OTA_RECEIVING);
                 } else {
                     set_ota_status(BLE_OTA_ERROR);

@@ -1,6 +1,7 @@
 #include "ota_update_failed_screen.h"
 #include <Arduino.h>
 #include "../../config/constants.h"
+#include "../../config/build_info.h"
 
 void OtaUpdateFailedScreen::create() {
     screen = lv_obj_create(lv_scr_act());
@@ -62,10 +63,26 @@ void OtaUpdateFailedScreen::create() {
 
 void OtaUpdateFailedScreen::show(const char* expected_build) {
     // Update details with build information
-    char details_text[128];
-    snprintf(details_text, sizeof(details_text), 
-             "Expected: Build #%s\nCurrent: Build #%d", 
-             expected_build, BUILD_NUMBER);
+    char details_text[200];
+    
+    // Handle case where expected_build might be null or empty
+    if (expected_build && strlen(expected_build) > 0) {
+        // Check if expected_build looks like a version (contains dots) or build number (digits only)
+        if (strchr(expected_build, '.') != nullptr) {
+            snprintf(details_text, sizeof(details_text), 
+                     "Expected: Version %s\nCurrent: Version %s\nBuild: #%d", 
+                     expected_build, BUILD_FIRMWARE_VERSION, BUILD_NUMBER);
+        } else {
+            snprintf(details_text, sizeof(details_text), 
+                     "Expected: Build #%s\nCurrent: Build #%d\nVersion: %s", 
+                     expected_build, BUILD_NUMBER, BUILD_FIRMWARE_VERSION);
+        }
+    } else {
+        snprintf(details_text, sizeof(details_text), 
+                 "Update verification failed\nCurrent: Build #%d\nVersion: %s", 
+                 BUILD_NUMBER, BUILD_FIRMWARE_VERSION);
+    }
+    
     lv_label_set_text(details_label, details_text);
 
     lv_obj_clear_flag(screen, LV_OBJ_FLAG_HIDDEN);
