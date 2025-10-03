@@ -51,13 +51,16 @@ jobs:
           fi
 
           for tag in $tags; do
+            tag_start=$(date +%s)
             download_dir="tools/web-flasher/firmware/${tag}"
             mkdir -p "$download_dir"
-            echo "Downloading assets for $tag"
+            echo "[$(date -u +%H:%M:%S)] Downloading assets for $tag"
             gh release download "$tag" \
               --repo "$REPO" \
               --dir "$download_dir" \
               --clobber
+            tag_end=$(date +%s)
+            echo "[$(date -u +%H:%M:%S)] Finished $tag in $((tag_end - tag_start))s"
           done
 
           python3 - <<'PY'
@@ -75,10 +78,12 @@ jobs:
                       try:
                           with urllib.request.urlopen(url) as response:
                               if response.status == 200:
+                                  print(f"  [OK] {url} (attempt {attempt + 1})")
                                   return True
                       except Exception:
-                          pass
+                          print(f"  [WAIT] {url} (attempt {attempt + 1})")
                       time.sleep(delay)
+                  print(f"  [FAIL] {url} after {retries} attempts")
                   return False
 
               for tag in sorted(os.listdir(firmware_root), reverse=True):
