@@ -11,7 +11,7 @@ Compatibility guide for Smart Grind-by-Weight modification across grinder models
 | [**Mignon Silenzio**](https://www.eureka.co.it/en/products/eureka+1920/mignon+grinders/silent+range/19.aspx) | 🔧 **Pin soldering** | Custom mount + pins | 🛠️ **Needs design** | Timer pot, no screen |
 | [**Mignon Crono**](https://www.eureka.co.it/en/products/eureka+1920/mignon+grinders/filter+range/26.aspx) | 🔧 **Pin soldering** | Custom mount + pins | 🛠️ **Needs design** | Timer pot, no screen |
 | [**Mignon Manuale**](https://www.eureka.co.it/en/products/eureka+1920/mignon+grinders/evolution+range/27.aspx) | 🔧 **Pin soldering** | Custom mount + pins | 🛠️ **Needs design** | Timer pot, no screen |
-| [**Mignon Zero**](https://www.eureka.co.it/en/products/eureka+1920/mignon+grinders/zero+range/74.aspx) | 🔧 **Pin soldering** | Custom mount + pins | 🛠️ **Needs design** | Single dose, no screen |
+| [**Mignon Zero**](https://www.eureka.co.it/en/products/eureka+1920/mignon+grinders/zero+range/74.aspx) | ❌ **Incompatible** | N/A | ❌ **None** | No motor relay (direct 230V switch) |
 | [**Atom series**](https://www.eureka.co.it/en/products/eureka+1920/commercial+grinders/atom+range/8.aspx) | ❓ **Unknown** | Research needed | ❌ **None** | Internals unknown |
 | **Baratza models** | 🔧 **Custom work** | Full adaptation | ❌ **None** | Electronics + mounting |
 | **Niche Zero** | 🔧 **Custom work** | Full adaptation | ❌ **None** | Electronics + mounting |
