@@ -8,33 +8,33 @@ on:
 permissions:
   contents: write
   actions: write
-
+  
 jobs:
   release:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Fetch full history for changelog
-
+    
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
-
+    
       - name: Install PlatformIO
         run: |
           pip install platformio
-
+    
       - name: Build firmware
         run: |
           # Use platformio directly like local development to ensure identical build
           # Install dependencies first to ensure exact versions
           pio pkg install
           pio run -e waveshare-esp32s3-touch-amoled-164
-
+        
       - name: Prepare release artifacts
         run: |
           set -euo pipefail
@@ -56,16 +56,6 @@ jobs:
           cp .pio/build/waveshare-esp32s3-touch-amoled-164/bootloader.bin "release-artifacts/${BOOTLOADER_FILE}"
           cp .pio/build/waveshare-esp32s3-touch-amoled-164/partitions.bin "release-artifacts/${PARTITIONS_FILE}"
 
-          export \
-            FIRMWARE_FILE \
-            BOOTLOADER_FILE \
-            PARTITIONS_FILE \
-            OTA_FILE \
-            MANIFEST_FILE \
-            PACKAGE_FILE \
-            BLANK_FILE \
-            VERSION
-
           # Ensure blank NVS image exists
           if [ ! -f "release-artifacts/${BLANK_FILE}" ]; then
             dd if=/dev/zero of="release-artifacts/${BLANK_FILE}" bs=8192 count=1
@@ -80,36 +70,29 @@ jobs:
           popd >/dev/null
 
           # Build ESP Web Tools manifest for USB flashing
-          VERSION_CORE="${VERSION#v}"
-          printf '%s\n' \
-            '{' \
-            '  "name": "Smart Grind By Weight",' \
-            "  \"version\": \"${VERSION_CORE}\"," \
-            '  "home_assistant_domain": "grinder",' \
-            '  "new_install_skip_erase": true,' \
-            '  "builds": [' \
-            '    {' \
-            '      "chipFamily": "ESP32-S3",' \
-            '      "parts": [' \
-            "        { \"path\": \"${BOOTLOADER_FILE}\", \"offset\": 0 }," \
-            "        { \"path\": \"${PARTITIONS_FILE}\", \"offset\": 32768 }," \
-            "        { \"path\": \"${BLANK_FILE}\", \"offset\": 57344 }," \
-            "        { \"path\": \"${FIRMWARE_FILE}\", \"offset\": 3276800 }" \
-            '      ]' \
-            '    }' \
-            '  ]' \
-            '}' \
-            > "release-artifacts/${MANIFEST_FILE}"
+          cat <<EOF > "release-artifacts/${MANIFEST_FILE}"
+{
+  "name": "Smart Grind By Weight",
+  "version": "${VERSION#v}",
+  "home_assistant_domain": "grinder",
+  "new_install_skip_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        { "path": "${BOOTLOADER_FILE}", "offset": 0 },
+        { "path": "${PARTITIONS_FILE}", "offset": 32768 },
+        { "path": "${BLANK_FILE}", "offset": 57344 },
+        { "path": "${FIRMWARE_FILE}", "offset": 3276800 }
+      ]
+    }
+  ]
+}
+EOF
 
           # Build convenience tarball
           pushd release-artifacts >/dev/null
-          tar -czf "${PACKAGE_FILE}" \
-            "${FIRMWARE_FILE}" \
-            "${BOOTLOADER_FILE}" \
-            "${PARTITIONS_FILE}" \
-            "${OTA_FILE}" \
-            "${MANIFEST_FILE}" \
-            "${BLANK_FILE}"
+          tar -czf "${PACKAGE_FILE}" "${FIRMWARE_FILE}" "${BOOTLOADER_FILE}" "${PARTITIONS_FILE}" "${OTA_FILE}" "${MANIFEST_FILE}" "${BLANK_FILE}"
           popd >/dev/null
 
           # Export filenames for later steps
@@ -127,31 +110,31 @@ jobs:
           else
             echo "IS_PRERELEASE=false" >> $GITHUB_ENV
           fi
-
+        
       - name: Prepare release notes
         id: changelog
         run: |
           # Create simple release notes with installation instructions
           cat > release-notes.md << EOF
           ## Installation
-
+        
           ### Web Installer (Recommended)
           Visit [Web Installer](https://jaapp.github.io/smart-grind-by-weight/) and select firmware version ${{ github.ref_name }}
-
+        
           ### Command Line (Alternative)
           1. Download \`smart-grind-by-weight-${{ github.ref_name }}.bin\` below
           2. Use the grinder tool to upload: \`python3 tools/grinder.py upload smart-grind-by-weight-${{ github.ref_name }}.bin\`
-
+        
           ## Build Information
           - Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           - Commit: ${{ github.sha }}
           - Tag: ${{ github.ref_name }}
           EOF
-
+        
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           cat release-notes.md >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-
+        
       - name: Create or update draft release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
