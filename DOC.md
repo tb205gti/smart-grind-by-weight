@@ -185,6 +185,7 @@ python3 tools/grinder.py upload smart-grind-by-weight-vX.X.X.bin
 ```
 
 **Manual firmware download:** [Releases page](https://github.com/jaapp/smart-grind-by-weight/releases)  
+**Asset labels:** automation tags each file with `type=firmware`, `type=manifest`, `type=ota`, etc.—keep those labels if you upload assets manually so the web flasher can find them.  
 **Build from source:** See [DEVELOPMENT.md](DEVELOPMENT.md)
 
 ---

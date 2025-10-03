@@ -37,87 +37,78 @@ jobs:
         
       - name: Prepare release artifacts
         run: |
+          set -euo pipefail
+
           mkdir -p release-artifacts
           VERSION=${{ github.ref_name }}
-          # Copy firmware binary from the main environment with versioned name
-          cp .pio/build/waveshare-esp32s3-touch-amoled-164/firmware.bin release-artifacts/smart-grind-by-weight-${VERSION}.bin
-        
-          # Copy versioned firmware to tools/web-flasher for CORS-free hosting
-          mkdir -p tools/web-flasher/firmware
-        
-          # Copy firmware with version in filename (application only)
-          cp .pio/build/waveshare-esp32s3-touch-amoled-164/firmware.bin tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}.bin
-        
-          # Copy versioned partition files (partition tables can change between versions)
-          cp .pio/build/waveshare-esp32s3-touch-amoled-164/bootloader.bin tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}-bootloader.bin
-          cp .pio/build/waveshare-esp32s3-touch-amoled-164/partitions.bin tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}-partitions.bin
-        
-          # Create blank 8KB NVS partition file if it doesn't exist (0xe000 to 0x10000)
-          if [ ! -f tools/web-flasher/firmware/blank_8KB.bin ]; then
-            dd if=/dev/zero of=tools/web-flasher/firmware/blank_8KB.bin bs=8192 count=1
+          FIRMWARE_FILE="smart-grind-by-weight-${VERSION}.bin"
+          BOOTLOADER_FILE="smart-grind-by-weight-${VERSION}-bootloader.bin"
+          PARTITIONS_FILE="smart-grind-by-weight-${VERSION}-partitions.bin"
+          OTA_FILE="smart-grind-by-weight-${VERSION}-web-ota.bin"
+          MANIFEST_FILE="smart-grind-by-weight-${VERSION}.manifest.json"
+          PACKAGE_FILE="smart-grind-by-weight-${VERSION}.tar.gz"
+          BLANK_FILE="blank_8KB.bin"
+
+          echo "Preparing firmware artifacts for ${VERSION}"
+
+          # Copy primary firmware outputs into release directory
+          cp .pio/build/waveshare-esp32s3-touch-amoled-164/firmware.bin "release-artifacts/${FIRMWARE_FILE}"
+          cp .pio/build/waveshare-esp32s3-touch-amoled-164/bootloader.bin "release-artifacts/${BOOTLOADER_FILE}"
+          cp .pio/build/waveshare-esp32s3-touch-amoled-164/partitions.bin "release-artifacts/${PARTITIONS_FILE}"
+
+          # Ensure blank NVS image exists
+          if [ ! -f "release-artifacts/${BLANK_FILE}" ]; then
+            dd if=/dev/zero of="release-artifacts/${BLANK_FILE}" bs=8192 count=1
           fi
-        
-          # Generate web-specific OTA patch files with version
-          pip install detools
-          if [ -f "tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}.bin" ]; then
-            echo "Generating web OTA patch for smart-grind-by-weight-${VERSION}.bin"
-            # Create empty file for delta base
-            touch empty.bin
-            # Generate compressed patch against empty file (web flasher only)
-            detools create_patch -c heatshrink empty.bin "tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}.bin" "tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}-web-ota.bin"
-            echo "Web OTA patch created: smart-grind-by-weight-${VERSION}-web-ota.bin ($(du -h "tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}-web-ota.bin" | cut -f1))"
-          fi
-        
-          # Generate individual manifest files for each firmware version
-          echo "Generating manifest files..."
-          cd tools/web-flasher/firmware
-          for firmware_file in smart-grind-by-weight-v*.bin; do
-            if [[ -f "$firmware_file" && "$firmware_file" != *"-web-ota.bin" && "$firmware_file" != *"-bootloader.bin" && "$firmware_file" != *"-partitions.bin" ]]; then
-              # Extract version from filename
-              firmware_version=$(echo "$firmware_file" | sed 's/smart-grind-by-weight-v\(.*\)\.bin/\1/')
-              manifest_file="${firmware_file%.bin}.manifest.json"
-              
-              # Create manifest file with proper ESP32-S3 partition layout using versioned partition files
-              bootloader_file="${firmware_file%.bin}-bootloader.bin"
-              partitions_file="${firmware_file%.bin}-partitions.bin"
-              
-              printf '{\n  "name": "Smart Grind By Weight",\n  "version": "%s",\n  "home_assistant_domain": "grinder",\n  "new_install_skip_erase": true,\n  "builds": [\n    {\n      "chipFamily": "ESP32-S3",\n      "parts": [\n        {\n          "path": "%s",\n          "offset": 0\n        },\n        {\n          "path": "%s",\n          "offset": 32768\n        },\n        {\n          "path": "blank_8KB.bin",\n          "offset": 57344\n        },\n        {\n          "path": "%s",\n          "offset": 3276800\n        }\n      ]\n    }\n  ]\n}\n' "$firmware_version" "$bootloader_file" "$partitions_file" "$firmware_file" > "$manifest_file"
-              echo "Generated manifest: $manifest_file"
-            fi
-          done
-          cd ../../..
-          # Create a firmware package
-          cd release-artifacts
-          tar -czf smart-grind-by-weight-${{ github.ref_name }}.tar.gz *.bin
-          cd ..
-        
-      - name: Commit web-flasher firmware files
-        run: |
-          # Configure git
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-        
-          # Switch to main branch (we're in detached HEAD from tag checkout)
-          git checkout main
-          git pull origin main
-        
-          # Copy the versioned firmware files to the main branch
-          mkdir -p tools/web-flasher/firmware
-          VERSION=${{ github.ref_name }}
-          cp .pio/build/waveshare-esp32s3-touch-amoled-164/firmware.bin tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}.bin 2>/dev/null || true
-          cp .pio/build/waveshare-esp32s3-touch-amoled-164/bootloader.bin tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}-bootloader.bin 2>/dev/null || true
-          cp .pio/build/waveshare-esp32s3-touch-amoled-164/partitions.bin tools/web-flasher/firmware/smart-grind-by-weight-${VERSION}-partitions.bin 2>/dev/null || true
-          find . -name "*-web-ota.bin" -exec cp {} tools/web-flasher/firmware/ \; 2>/dev/null || true
-          find . -name "blank_8KB.bin" -exec cp {} tools/web-flasher/firmware/ \; 2>/dev/null || true
-        
-        
-          # Add the generated firmware files and manifests for web flasher
-          git add tools/web-flasher/firmware/*.bin tools/web-flasher/firmware/*.manifest.json
-        
-          # Only commit if there are changes
-          if ! git diff --staged --quiet; then
-            git commit -m "chore: Update web-flasher firmware for release ${{ github.ref_name }}"
-            git push origin main
+
+          # Generate web-specific OTA patch (delta from empty image)
+          python3 -m pip install --no-cache-dir detools
+          pushd release-artifacts >/dev/null
+          touch empty.bin
+          detools create_patch -c heatshrink empty.bin "${FIRMWARE_FILE}" "${OTA_FILE}"
+          rm empty.bin
+          popd >/dev/null
+
+          # Build ESP Web Tools manifest for USB flashing
+          cat <<EOF > "release-artifacts/${MANIFEST_FILE}"
+{
+  "name": "Smart Grind By Weight",
+  "version": "${VERSION#v}",
+  "home_assistant_domain": "grinder",
+  "new_install_skip_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        { "path": "${BOOTLOADER_FILE}", "offset": 0 },
+        { "path": "${PARTITIONS_FILE}", "offset": 32768 },
+        { "path": "${BLANK_FILE}", "offset": 57344 },
+        { "path": "${FIRMWARE_FILE}", "offset": 3276800 }
+      ]
+    }
+  ]
+}
+EOF
+
+          # Build convenience tarball
+          pushd release-artifacts >/dev/null
+          tar -czf "${PACKAGE_FILE}" "${FIRMWARE_FILE}" "${BOOTLOADER_FILE}" "${PARTITIONS_FILE}" "${OTA_FILE}" "${MANIFEST_FILE}" "${BLANK_FILE}"
+          popd >/dev/null
+
+          # Export filenames for later steps
+          echo "FIRMWARE_FILE=${FIRMWARE_FILE}" >> $GITHUB_ENV
+          echo "BOOTLOADER_FILE=${BOOTLOADER_FILE}" >> $GITHUB_ENV
+          echo "PARTITIONS_FILE=${PARTITIONS_FILE}" >> $GITHUB_ENV
+          echo "OTA_FILE=${OTA_FILE}" >> $GITHUB_ENV
+          echo "MANIFEST_FILE=${MANIFEST_FILE}" >> $GITHUB_ENV
+          echo "PACKAGE_FILE=${PACKAGE_FILE}" >> $GITHUB_ENV
+          echo "BLANK_FILE=${BLANK_FILE}" >> $GITHUB_ENV
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          LOWER_VERSION="${VERSION,,}"
+          if [[ "${LOWER_VERSION}" == *"-rc"* || "${LOWER_VERSION}" == *"-beta"* || "${LOWER_VERSION}" == *"-alpha"* ]]; then
+            echo "IS_PRERELEASE=true" >> $GITHUB_ENV
+          else
+            echo "IS_PRERELEASE=false" >> $GITHUB_ENV
           fi
         
       - name: Prepare release notes
@@ -144,22 +135,44 @@ jobs:
           cat release-notes.md >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            release-artifacts/*.tar.gz
-            release-artifacts/*.bin
-          body: ${{ steps.changelog.outputs.changelog }}
-          draft: true
-          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'rc') }}
-          generate_release_notes: true
+      - name: Create or update draft release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
-      - name: Trigger web-flasher deployment
         run: |
-          # Trigger web flasher deployment workflow manually
-          gh workflow run deploy-web-flasher.yml
+          set -euo pipefail
+
+          TAG=${{ github.ref_name }}
+          TITLE=${TAG}
+
+          if [ "${IS_PRERELEASE}" = "true" ]; then
+            PRERELEASE_CREATE_FLAG="--prerelease"
+            PRERELEASE_EDIT_FLAG="--prerelease=true"
+          else
+            PRERELEASE_CREATE_FLAG=""
+            PRERELEASE_EDIT_FLAG="--prerelease=false"
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists. Updating notes and draft state."
+            gh release edit "$TAG" --draft=true $PRERELEASE_EDIT_FLAG --title "$TITLE" --notes-file release-notes.md
+          else
+            echo "Creating new draft release $TAG"
+            gh release create "$TAG" --draft $PRERELEASE_CREATE_FLAG --title "$TITLE" --notes-file release-notes.md
+          fi
+
+      - name: Upload release assets with labels
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          TAG=${{ github.ref_name }}
+
+          echo "Uploading firmware assets for $TAG"
+          gh release upload "$TAG" "release-artifacts/${FIRMWARE_FILE}" --clobber --label "type=firmware"
+          gh release upload "$TAG" "release-artifacts/${BOOTLOADER_FILE}" --clobber --label "type=bootloader"
+          gh release upload "$TAG" "release-artifacts/${PARTITIONS_FILE}" --clobber --label "type=partitions"
+          gh release upload "$TAG" "release-artifacts/${OTA_FILE}" --clobber --label "type=ota"
+          gh release upload "$TAG" "release-artifacts/${MANIFEST_FILE}" --clobber --label "type=manifest"
+          gh release upload "$TAG" "release-artifacts/${BLANK_FILE}" --clobber --label "type=blank_nvs"
+          gh release upload "$TAG" "release-artifacts/${PACKAGE_FILE}" --clobber --label "type=package"
