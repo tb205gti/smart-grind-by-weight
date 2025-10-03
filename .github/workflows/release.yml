@@ -173,10 +173,3 @@ jobs:
           gh release upload "$TAG" "release-artifacts/smart-grind-by-weight-${TAG}.manifest.json" --clobber
           gh release upload "$TAG" "release-artifacts/blank_8KB.bin" --clobber
           gh release upload "$TAG" "release-artifacts/smart-grind-by-weight-${TAG}.tar.gz" --clobber
-
-      - name: Trigger web flasher deployment
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          gh workflow run deploy-web-flasher.yml

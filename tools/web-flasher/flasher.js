@@ -1,174 +1,8 @@
 // Smart Grind By Weight - Web Bluetooth Flasher
 // Based on your existing Python BLE implementation
 
-// GitHub release metadata
-const REPO_OWNER = 'jaapp';
-const REPO_NAME = 'smart-grind-by-weight';
-const RELEASES_API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases?per_page=50`;
-const PAGES_FIRMWARE_BASE = 'https://jaapp.github.io/smart-grind-by-weight/firmware/';
-
-function buildAssetInfo(asset) {
-    if (!asset) {
-        return null;
-    }
-
-    return {
-        ...asset,
-        downloadUrl: asset.browser_download_url,
-        apiUrl: asset.url,
-        size: asset.size,
-    };
-}
-
-function getAssetType(asset) {
-    if (!asset || !asset.label) {
-        return null;
-    }
-
-    const match = asset.label.toLowerCase().match(/type\s*[:=]\s*([a-z0-9_-]+)/);
-    return match ? match[1] : null;
-}
-
-function isMainFirmwareAsset(asset) {
-    return Boolean(asset?.name?.endsWith('.bin')) &&
-        asset.name.startsWith('smart-grind-by-weight') &&
-        !asset.name.includes('-bootloader') &&
-        !asset.name.includes('-partitions') &&
-        !asset.name.includes('-web-ota');
-}
-
-function isManifestAsset(asset) {
-    return Boolean(asset?.name?.endsWith('.manifest.json')) && asset.name.startsWith('smart-grind-by-weight');
-}
-
-function isOtaAsset(asset) {
-    return Boolean(asset?.name?.includes('-web-ota.bin'));
-}
-
-function isBootloaderAsset(asset) {
-    return Boolean(asset?.name?.includes('-bootloader.bin'));
-}
-
-function isPartitionsAsset(asset) {
-    return Boolean(asset?.name?.includes('-partitions.bin'));
-}
-
-function isBlankAsset(asset) {
-    return asset?.name === 'blank_8KB.bin';
-}
-
-function normalizeRelease(release) {
-    if (!release || !Array.isArray(release.assets)) {
-        return null;
-    }
-
-    const assetsByType = {};
-    for (const asset of release.assets) {
-        const type = getAssetType(asset);
-        if (type && !assetsByType[type]) {
-            assetsByType[type] = buildAssetInfo(asset);
-        }
-    }
-
-    let manifest = assetsByType.manifest;
-    let firmware = assetsByType.firmware;
-    let ota = assetsByType.ota || null;
-    let bootloader = assetsByType.bootloader || null;
-    let partitions = assetsByType.partitions || null;
-    let blankNvs = assetsByType.blank_nvs || null;
-
-    if (!manifest) {
-        const fallbackManifest = release.assets.find(isManifestAsset);
-        if (fallbackManifest) {
-            manifest = buildAssetInfo(fallbackManifest);
-        }
-    }
-
-    if (!firmware) {
-        const fallbackFirmware = release.assets.find(isMainFirmwareAsset);
-        if (fallbackFirmware) {
-            firmware = buildAssetInfo(fallbackFirmware);
-        }
-    }
-
-    if (!ota) {
-        const fallbackOta = release.assets.find(isOtaAsset);
-        if (fallbackOta) {
-            ota = buildAssetInfo(fallbackOta);
-        }
-    }
-
-    if (!bootloader) {
-        const fallbackBootloader = release.assets.find(isBootloaderAsset);
-        if (fallbackBootloader) {
-            bootloader = buildAssetInfo(fallbackBootloader);
-        }
-    }
-
-    if (!partitions) {
-        const fallbackPartitions = release.assets.find(isPartitionsAsset);
-        if (fallbackPartitions) {
-            partitions = buildAssetInfo(fallbackPartitions);
-        }
-    }
-
-    if (!blankNvs) {
-        const fallbackBlank = release.assets.find(isBlankAsset);
-        if (fallbackBlank) {
-            blankNvs = buildAssetInfo(fallbackBlank);
-        }
-    }
-
-    if (!manifest || !firmware) {
-        return null;
-    }
-
-    const rawTag = release.tag_name || '';
-    let version = rawTag.replace(/^v/, '');
-
-    if (!version && manifest.name) {
-        const manifestMatch = manifest.name.match(/smart-grind-by-weight-v(.+)\.manifest\.json$/i);
-        if (manifestMatch) {
-            version = manifestMatch[1];
-        }
-    }
-
-    if (!version && firmware.name) {
-        const firmwareMatch = firmware.name.match(/smart-grind-by-weight-v(.+)\.bin$/i);
-        if (firmwareMatch) {
-            version = firmwareMatch[1];
-        }
-    }
-
-    const labelVersion = rawTag || (version ? `v${version}` : 'Unknown');
-    const baseLabel = labelVersion.startsWith('v') ? labelVersion : `v${labelVersion}`;
-    const tag = rawTag || baseLabel;
-    const encodedTag = encodeURIComponent(tag);
-    const pagesBase = `${PAGES_FIRMWARE_BASE}${encodedTag}/`;
-
-    const manifestPagesUrl = manifest ? `${pagesBase}${manifest.name}` : null;
-    const otaPagesUrl = ota ? `${pagesBase}${ota.name}` : null;
-    const firmwarePagesUrl = firmware ? `${pagesBase}${firmware.name}` : null;
-    const bootloaderPagesUrl = bootloader ? `${pagesBase}${bootloader.name}` : null;
-    const partitionsPagesUrl = partitions ? `${pagesBase}${partitions.name}` : null;
-    const blankPagesUrl = blankNvs ? `${pagesBase}${blankNvs.name}` : null;
-
-    return {
-        id: release.id,
-        tag,
-        version,
-        prerelease: Boolean(release.prerelease),
-        publishedAt: release.published_at || release.created_at || null,
-        manifest: manifest ? { ...manifest, pagesUrl: manifestPagesUrl } : null,
-        firmware: firmware ? { ...firmware, pagesUrl: firmwarePagesUrl } : null,
-        ota: ota ? { ...ota, pagesUrl: otaPagesUrl } : null,
-        bootloader: bootloader ? { ...bootloader, pagesUrl: bootloaderPagesUrl } : null,
-        partitions: partitions ? { ...partitions, pagesUrl: partitionsPagesUrl } : null,
-        blankNvs: blankNvs ? { ...blankNvs, pagesUrl: blankPagesUrl } : null,
-        pagesBase,
-        displayLabel: baseLabel,
-    };
-}
+// Firmware index metadata
+const FIRMWARE_INDEX_URL = 'firmware/index.json';
 
 // BLE Service UUIDs (from your bluetooth.h config)
 const BLE_OTA_SERVICE_UUID = '12345678-1234-1234-1234-123456789abc';
@@ -197,7 +31,22 @@ let server = null;
 let otaService = null;
 let currentOtaStatus = BLE_OTA_IDLE;
 let statusCharacteristic = null;
-let cachedReleaseMetadata = null;
+let cachedFirmwareIndex = null;
+
+async function fetchFirmwareIndex() {
+    if (!cachedFirmwareIndex) {
+        const response = await fetch(FIRMWARE_INDEX_URL, { cache: 'no-store' });
+        if (!response.ok) {
+            throw new Error(`Failed to load firmware index (${response.status})`);
+        }
+        cachedFirmwareIndex = await response.json();
+    }
+    return cachedFirmwareIndex;
+}
+
+function resolveFirmwareUrl(relativePath) {
+    return new URL(relativePath, window.location.href).href;
+}
 
 // Browser support check and load releases
 window.addEventListener('load', () => {
@@ -651,54 +500,37 @@ async function loadReleases() {
         usbSelect.innerHTML = '<option value="">Loading firmware...</option>';
         otaSelect.innerHTML = '<option value="">Loading firmware...</option>';
 
-        if (!Array.isArray(cachedReleaseMetadata)) {
-            const response = await fetch(RELEASES_API_URL);
-            if (!response.ok) {
-                throw new Error(`GitHub API returned ${response.status}`);
-            }
-
-            const releases = await response.json();
-            cachedReleaseMetadata = releases
-                .map(normalizeRelease)
-                .filter(Boolean)
-                .sort((a, b) => {
-                    const dateA = a.publishedAt ? new Date(a.publishedAt) : 0;
-                    const dateB = b.publishedAt ? new Date(b.publishedAt) : 0;
-                    return dateB - dateA;
-                });
-        }
-
-        const normalized = cachedReleaseMetadata;
+        const indexEntries = await fetchFirmwareIndex();
 
         usbSelect.innerHTML = '';
         otaSelect.innerHTML = '';
 
-        normalized.forEach(release => {
-            const label = release.prerelease ? `${release.displayLabel} (pre-release)` : release.displayLabel;
-            const manifestUrl = release.manifest?.pagesUrl;
-            const otaUrl = release.ota?.pagesUrl;
+        indexEntries.forEach(entry => {
+            const label = entry.prerelease ? `${entry.display || entry.tag} (pre-release)` : (entry.display || entry.tag);
+            const manifestUrl = entry.manifest ? resolveFirmwareUrl(entry.manifest) : null;
+            const otaUrl = entry.ota ? resolveFirmwareUrl(entry.ota) : null;
 
-            if (manifestUrl && (!release.prerelease || showRC)) {
+            if (manifestUrl && (!entry.prerelease || showRC)) {
                 const option = document.createElement('option');
                 option.value = manifestUrl;
                 option.textContent = label;
                 option.dataset.display = label;
-                option.dataset.version = release.version;
-                option.dataset.releaseTag = release.tag;
+                option.dataset.version = entry.version || entry.tag.replace(/^v/, '');
+                option.dataset.releaseTag = entry.tag;
                 option.dataset.manifest = manifestUrl;
-                option.dataset.prerelease = release.prerelease ? 'true' : 'false';
+                option.dataset.prerelease = entry.prerelease ? 'true' : 'false';
                 usbSelect.appendChild(option);
             }
 
-            if (otaUrl && (!release.prerelease || showRCOTA)) {
+            if (otaUrl && (!entry.prerelease || showRCOTA)) {
                 const option = document.createElement('option');
                 option.value = otaUrl;
                 option.textContent = label;
                 option.dataset.display = label;
-                option.dataset.version = release.version;
-                option.dataset.releaseTag = release.tag;
+                option.dataset.version = entry.version || entry.tag.replace(/^v/, '');
+                option.dataset.releaseTag = entry.tag;
                 option.dataset.ota = otaUrl;
-                option.dataset.prerelease = release.prerelease ? 'true' : 'false';
+                option.dataset.prerelease = entry.prerelease ? 'true' : 'false';
                 otaSelect.appendChild(option);
             }
         });
