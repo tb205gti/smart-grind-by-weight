@@ -129,28 +129,171 @@ def update_firmware_version(new_version):
         return False
     return False
 
+def parse_version(version_str):
+    """Parse version string into (major, minor, patch) tuple"""
+    version = version_str.lstrip('v')
+    # Strip RC/beta/alpha suffixes
+    if '-' in version:
+        version = version.split('-')[0]
+    try:
+        parts = version.split('.')
+        return (int(parts[0]), int(parts[1]), int(parts[2]))
+    except (ValueError, IndexError):
+        return None
+
+def clean_old_rc_tags():
+    """Remove RC tags for old semantic versions, keeping current semver tags"""
+    print("=== Clean Old RC Tags ===\n")
+
+    # Get all tags
+    all_tags = run_command("git tag -l")
+    if not all_tags:
+        print("No tags found.")
+        return True
+
+    tags = all_tags.split('\n')
+
+    # Parse all versions and find the latest
+    versions = []
+    for tag in tags:
+        tag = tag.strip()
+        if not tag:
+            continue
+        parsed = parse_version(tag)
+        if parsed:
+            versions.append((parsed, tag))
+
+    if not versions:
+        print("No valid version tags found.")
+        return True
+
+    # Get the current (latest) semver
+    current_semver = max(v[0] for v in versions)
+    print(f"Current semver: v{current_semver[0]}.{current_semver[1]}.{current_semver[2]}")
+
+    # Find all RC tags for old semvers
+    tags_to_delete = []
+    for (major, minor, patch), tag in versions:
+        # Only delete RC tags from old semvers
+        if '-rc.' in tag and (major, minor, patch) < current_semver:
+            tags_to_delete.append(tag)
+
+    if not tags_to_delete:
+        print("\nNo old RC tags to clean. All RC tags are for the current semver.")
+        return True
+
+    # Group by semver for display
+    by_semver = {}
+    for tag in tags_to_delete:
+        parsed = parse_version(tag)
+        semver_key = f"v{parsed[0]}.{parsed[1]}.{parsed[2]}"
+        if semver_key not in by_semver:
+            by_semver[semver_key] = []
+        by_semver[semver_key].append(tag)
+
+    # Show confirmation screen
+    print("\n" + "="*60)
+    print("TAGS TO BE DELETED (LOCAL AND REMOTE)")
+    print("="*60)
+    for semver_key in sorted(by_semver.keys()):
+        print(f"\n{semver_key}:")
+        for tag in sorted(by_semver[semver_key]):
+            print(f"  • {tag}")
+
+    print("\n" + "="*60)
+    print(f"Total: {len(tags_to_delete)} RC tags from old semvers")
+    print(f"Keeping: All tags for current semver v{current_semver[0]}.{current_semver[1]}.{current_semver[2]}")
+    print("="*60)
+
+    response = input("\n⚠️  Proceed with deletion (local AND remote)? (y/N): ")
+    if response.lower() != 'y':
+        print("Cleanup cancelled.")
+        return False
+
+    # Delete tags locally and remotely
+    print("\nDeleting tags...")
+    failed_tags = []
+    for tag in sorted(tags_to_delete):
+        print(f"  {tag}...", end=" ")
+
+        # Delete local tag
+        result = run_command(f'git tag -d {tag}')
+        if result is None:
+            print("❌ Failed (local)")
+            failed_tags.append(tag)
+            continue
+
+        # Delete remote tag
+        result = run_command(f'git push origin :refs/tags/{tag}')
+        if result is None:
+            print("⚠️  Deleted locally, failed remotely")
+            failed_tags.append(tag)
+            continue
+
+        print("✅")
+
+    if failed_tags:
+        print(f"\n⚠️  Failed to fully delete {len(failed_tags)} tags:")
+        for tag in failed_tags:
+            print(f"  - {tag}")
+        return False
+
+    # Clean up web-flasher firmware files for deleted RC tags
+    print("\nCleaning web-flasher firmware files...")
+    web_flasher_dir = Path(__file__).parent / "web-flasher" / "firmware"
+    if web_flasher_dir.exists():
+        deleted_firmware_files = []
+        for tag in tags_to_delete:
+            # Remove 'v' prefix for filename matching
+            version = tag.lstrip('v')
+            # Find all files matching this version
+            pattern = f"smart-grind-by-weight-{version}*"
+            matching_files = list(web_flasher_dir.glob(pattern))
+
+            for file_path in matching_files:
+                try:
+                    file_path.unlink()
+                    deleted_firmware_files.append(file_path.name)
+                except Exception as e:
+                    print(f"  ⚠️  Failed to delete {file_path.name}: {e}")
+
+        if deleted_firmware_files:
+            print(f"  ✅ Deleted {len(deleted_firmware_files)} firmware files")
+            # Stage the deletions
+            run_command(f'git add {web_flasher_dir}')
+        else:
+            print("  No firmware files found to delete")
+    else:
+        print("  Web-flasher directory not found, skipping firmware cleanup")
+
+    print(f"\n✅ Successfully deleted {len(tags_to_delete)} old RC tags (local and remote)!")
+    if deleted_firmware_files:
+        print(f"✅ Deleted {len(deleted_firmware_files)} firmware files from web-flasher")
+        print("\n⚠️  Don't forget to commit the firmware file deletions!")
+    return True
+
 def create_release():
     """Interactive release creation"""
     print("=== Smart Grind Release Helper ===\n")
-    
+
     # Check git status
     if not check_git_status():
         print("Aborting release.")
         return False
-    
+
     # Get current version
     current_version = get_current_version()
     firmware_version = get_firmware_version()
     print(f"Current git version: {current_version}")
     print(f"Current firmware version: v{firmware_version}")
-    
+
     # Show recent commits
     print("\nRecent commits since last tag:")
     if current_version != "v0.0.0":
         commits = run_command(f"git log --oneline {current_version}..HEAD")
     else:
         commits = run_command("git log --oneline -10")
-    
+
     if commits:
         print(commits)
     else:
@@ -160,15 +303,19 @@ def create_release():
         if response.lower() != 'y':
             print("Release cancelled.")
             return False
-    
-    print("\nWhat type of release is this?")
+
+    print("\nWhat would you like to do?")
     print("1. Patch (bug fixes): v1.0.0 -> v1.0.1")
-    print("2. Minor (new features): v1.0.0 -> v1.1.0") 
+    print("2. Minor (new features): v1.0.0 -> v1.1.0")
     print("3. Major (breaking changes): v1.0.0 -> v2.0.0")
     print("4. Release Candidate (testing): auto-increments RC number")
     print("5. Custom version")
-    
-    choice = input("\nEnter choice (1-5): ").strip()
+    print("6. Clean old RCs (remove RC tags from previous semvers)")
+
+    choice = input("\nEnter choice (1-6): ").strip()
+
+    if choice == '6':
+        return clean_old_rc_tags()
     
     if choice == '1':
         new_version = increment_version(current_version, 'patch')
@@ -294,11 +441,26 @@ def create_release():
     return True
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--help":
-        print("Usage: python3 tools/release.py")
-        print("Interactive script to create tagged releases")
-        sys.exit(0)
-    
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "--help":
+            print("Usage: python3 tools/release.py [command]")
+            print("\nCommands:")
+            print("  (none)           Interactive script to create tagged releases")
+            print("  clean-old-rcs    Remove old RC tags for previous semvers")
+            print("  --help           Show this help message")
+            sys.exit(0)
+        elif sys.argv[1] == "clean-old-rcs":
+            try:
+                success = clean_old_rc_tags()
+                sys.exit(0 if success else 1)
+            except KeyboardInterrupt:
+                print("\n\nCleanup cancelled by user.")
+                sys.exit(1)
+        else:
+            print(f"Unknown command: {sys.argv[1]}")
+            print("Run 'python3 tools/release.py --help' for usage")
+            sys.exit(1)
+
     try:
         create_release()
     except KeyboardInterrupt:
