@@ -73,7 +73,7 @@ jobs:
               firmware_root = "tools/web-flasher/firmware"
               entries = []
 
-              def wait_for(url, retries=24, delay=15):
+              def wait_for(url, retries=30, delay=30):
                   for attempt in range(retries):
                       try:
                           with urllib.request.urlopen(url) as response:
@@ -84,7 +84,8 @@ jobs:
                           print(f"  [WAIT] {url} (attempt {attempt + 1})")
                       time.sleep(delay)
                   total = retries * delay
-                  print(f"  [FAIL] {url} after {retries} attempts (~{total}s)")
+                  minutes = total // 60
+                  print(f"  [FAIL] {url} after {retries} attempts (~{minutes}m)")
                   return False
 
               for tag in sorted(os.listdir(firmware_root), reverse=True):
