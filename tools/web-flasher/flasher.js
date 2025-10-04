@@ -160,40 +160,52 @@ async function downloadFirmware(url) {
     return firmware;
 }
 
+// Combined connect and flash function
+async function connectAndFlash() {
+    const connectFlashBtn = document.getElementById('connectFlashBtn');
+
+    // Disable button during operation
+    connectFlashBtn.disabled = true;
+
+    const connected = await connectDevice();
+    if (connected) {
+        await flashFirmware();
+    }
+
+    // Re-enable button after operation
+    connectFlashBtn.disabled = false;
+}
+
 // BLE Connection
 async function connectDevice() {
     if (!('bluetooth' in navigator)) {
         updateStatus('Web Bluetooth not supported in this browser', 'error');
         return false;
     }
-    
+
     try {
         updateStatus('Scanning for device...', 'info');
-        
+
         device = await navigator.bluetooth.requestDevice({
             filters: [{ name: DEVICE_NAME }],
             optionalServices: [BLE_OTA_SERVICE_UUID]
         });
-        
+
         updateStatus('Connecting to device...', 'info');
         server = await device.gatt.connect();
-        
+
         updateStatus('Getting OTA service...', 'info');
         otaService = await server.getPrimaryService(BLE_OTA_SERVICE_UUID);
-        
+
         // Set up status notifications
         statusCharacteristic = await otaService.getCharacteristic(BLE_OTA_STATUS_CHAR_UUID);
         await statusCharacteristic.startNotifications();
         statusCharacteristic.addEventListener('characteristicvaluechanged', handleStatusUpdate);
-        
+
         updateStatus('Connected successfully!', 'success');
-        
-        // Enable flash button
-        document.getElementById('connectBtn').disabled = true;
-        document.getElementById('flashBtn').disabled = false;
-        
+
         return true;
-        
+
     } catch (error) {
         updateStatus(`Connection failed: ${error.message}`, 'error');
         console.error('Connection error:', error);
@@ -275,27 +287,23 @@ function prepareFirmwareData(firmwareData) {
 // Main firmware flash function
 async function flashFirmware() {
     const firmwareSelect = document.getElementById('firmwareSelect');
-    const flashBtn = document.getElementById('flashBtn');
-    
+
     if (!firmwareSelect) {
         updateStatus('Firmware selection element not found', 'error');
         return;
     }
-    
+
     const selectedOption = firmwareSelect.selectedOptions[0];
     const firmwareUrl = selectedOption ? (selectedOption.dataset?.ota || firmwareSelect.value) : firmwareSelect.value;
     if (!firmwareUrl) {
         updateStatus('Please select a firmware version', 'error');
         return;
     }
-    
+
     if (!server || !server.connected) {
         updateStatus('Not connected to device', 'error');
         return;
     }
-    
-    // Disable and gray out flash button
-    flashBtn.disabled = true;
     
     try {
         // Download firmware
@@ -414,20 +422,15 @@ async function flashFirmware() {
         }
         
         updateProgress(100);
-        
-        // Reset UI
+
+        // Reset progress after delay
         setTimeout(() => {
-            document.getElementById('connectBtn').disabled = false;
-            document.getElementById('flashBtn').disabled = true;
             updateProgress(0);
         }, 3000);
-        
+
     } catch (error) {
         updateStatus(`Flash failed: ${error.message}`, 'error');
         console.error('Flash error:', error);
-        
-        // Re-enable flash button on error
-        flashBtn.disabled = false;
         
         // Try to abort OTA on error
         try {
