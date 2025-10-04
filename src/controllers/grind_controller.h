@@ -13,6 +13,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
+class DiagnosticsController;
+
 // Forward declaration to avoid circular dependency
 struct GrindEventData;
 
@@ -155,6 +157,14 @@ private:
     WeightGrindStrategy weight_strategy;
     TimeGrindStrategy time_strategy;
 
+    // Mechanical instability tracking
+    int mechanical_anomaly_count_ = 0;
+    unsigned long last_mechanical_event_ms_ = 0;
+    float last_mechanical_weight_ = 0.0f;
+    bool mechanical_monitor_initialized_ = false;
+
+    DiagnosticsController* diagnostics_controller_ = nullptr;
+
 public:
     void init(WeightSensor* lc, Grinder* gr, Preferences* prefs);
     void start_grind(float target_weight, uint32_t target_time_ms, GrindMode grind_mode);
@@ -198,6 +208,11 @@ public:
     float get_grind_latency_ms() const { return grind_latency_ms; }
     float get_last_logged_weight() const { return last_logged_weight; }
     void set_last_logged_weight(float weight) { last_logged_weight = weight; } // Thread-safe setter
+
+    int get_mechanical_anomaly_count() const { return mechanical_anomaly_count_; }
+    void reset_mechanical_anomaly_count();
+
+    void set_diagnostics_controller(DiagnosticsController* diagnostics) { diagnostics_controller_ = diagnostics; }
     
     // Removed - predictive logic now inline in update_realtime()
     
@@ -205,6 +220,7 @@ public:
 private:
     void switch_phase(GrindPhase new_phase, const GrindLoopData& loop_data = {});
     void final_measurement(const GrindLoopData& loop_data);
+    void monitor_mechanical_instability(const GrindLoopData& loop_data);
 
     bool check_timeout() const;
     uint8_t get_current_phase_id() const;

@@ -3,6 +3,7 @@
 #include "../../config/constants.h"
 #include "../../bluetooth/manager.h"
 #include "../../controllers/grind_controller.h"
+#include "../../system/diagnostics_controller.h"
 #include "../ui_helpers.h"
 
 class GrindingScreen;  // Forward declaration
@@ -17,7 +18,8 @@ private:
     lv_obj_t* grind_mode_page;
     lv_obj_t* tools_page;
     lv_obj_t* data_page;
-    
+    lv_obj_t* diagnostics_page;
+
     // Info tab elements
     lv_obj_t* info_label;
     lv_obj_t* uptime_label;
@@ -25,9 +27,6 @@ private:
     lv_obj_t* instant_label;
     lv_obj_t* samples_label;
     lv_obj_t* raw_label;
-    lv_obj_t* std_dev_g_label;
-    lv_obj_t* std_dev_adc_label;
-    lv_obj_t* threshold_ok_label;
     lv_obj_t* sessions_label;
     lv_obj_t* events_label;
     lv_obj_t* measurements_label;
@@ -54,7 +53,16 @@ private:
     lv_obj_t* cal_button;
     lv_obj_t* motor_test_button;
     lv_obj_t* tare_button;
-    
+
+    // Diagnostics tab elements
+    lv_obj_t* diag_status_label;
+    lv_obj_t* diag_calibration_factor_label;
+    lv_obj_t* diag_std_dev_g_label;
+    lv_obj_t* diag_std_dev_adc_label;
+    lv_obj_t* diag_noise_level_label;
+    lv_obj_t* diag_info_label;
+    lv_obj_t* diag_reset_button;
+
     // Common elements
     bool visible;
     
@@ -62,12 +70,14 @@ private:
     GrindController* grind_controller;
     GrindingScreen* grinding_screen;
     class HardwareManager* hardware_manager; // Forward declaration to access preferences
+    DiagnosticsController* diagnostics_controller;
 
 public:
-    void create(BluetoothManager* bluetooth, GrindController* grind_ctrl, GrindingScreen* grind_screen, class HardwareManager* hw_mgr);
+    void create(BluetoothManager* bluetooth, GrindController* grind_ctrl, GrindingScreen* grind_screen, class HardwareManager* hw_mgr, DiagnosticsController* diag_ctrl);
     void show();
     void hide();
     void update_info(const WeightSensor* weight_sensor, unsigned long uptime_ms, size_t free_heap);
+    void update_diagnostics(WeightSensor* weight_sensor);
     void update_ble_status();
     void refresh_statistics(bool show_overlay = true);
     void update_brightness_labels(int normal_percent = -1, int screensaver_percent = -1); // Use negative value to leave unchanged
@@ -79,6 +89,7 @@ public:
     bool is_visible() const { return visible; }
     lv_obj_t* get_screen() const { return screen; }
     lv_obj_t* get_tabview() const { return menu; }
+    lv_obj_t* get_diagnostics_page() const { return diagnostics_page; }
     lv_obj_t* get_cal_button() const { return cal_button; }
     lv_obj_t* get_purge_button() const { return purge_button; }
     lv_obj_t* get_reset_button() const { return reset_button; }
@@ -88,6 +99,7 @@ public:
     lv_obj_t* get_ble_startup_toggle() const { return ble_startup_toggle; }
     lv_obj_t* get_logging_toggle() const { return logging_toggle; }
     lv_obj_t* get_refresh_stats_button() const { return refresh_stats_button; }
+    lv_obj_t* get_diag_reset_button() const { return diag_reset_button; }
     lv_obj_t* get_brightness_normal_slider() const { return brightness_normal_slider; }
     lv_obj_t* get_brightness_screensaver_slider() const { return brightness_screensaver_slider; }
     lv_obj_t* get_grind_mode_radio_group() const { return grind_mode_radio_group; }
@@ -100,6 +112,7 @@ private:
     void create_grind_mode_page(lv_obj_t* parent);
     void create_tools_page(lv_obj_t* parent);
     void create_data_page(lv_obj_t* parent);
+    void create_diagnostics_page(lv_obj_t* parent);
     lv_obj_t* create_separator(lv_obj_t* parent, const char* text = nullptr);
     lv_obj_t* create_menu_item(lv_obj_t* parent, const char* text);
     lv_obj_t *create_toggle_row(lv_obj_t *parent, const char *text,lv_obj_t **out_toggle);

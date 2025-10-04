@@ -19,11 +19,12 @@ static void back_event_handler(lv_event_t * e)
     }
 }
 
-void SettingsScreen::create(BluetoothManager* bluetooth, GrindController* grind_ctrl, GrindingScreen* grind_screen, class HardwareManager* hw_mgr) {
+void SettingsScreen::create(BluetoothManager* bluetooth, GrindController* grind_ctrl, GrindingScreen* grind_screen, class HardwareManager* hw_mgr, DiagnosticsController* diag_ctrl) {
     bluetooth_manager = bluetooth;
     grind_controller = grind_ctrl;
     grinding_screen = grind_screen;
     hardware_manager = hw_mgr;
+    diagnostics_controller = diag_ctrl;
     
     screen = lv_obj_create(lv_scr_act());
     lv_obj_set_size(screen, LV_PCT(100), LV_PCT(100));
@@ -94,9 +95,15 @@ void SettingsScreen::create(BluetoothManager* bluetooth, GrindController* grind_
     data_page = lv_menu_page_create(menu, "Data");
     create_data_page(data_page);
 
+    diagnostics_page = lv_menu_page_create(menu, "Diagnostics");
+    create_diagnostics_page(diagnostics_page);
+
     // Create menu items and link to sub-pages
     lv_obj_t* info_item = create_menu_item(main_page, "System Info");
     lv_menu_set_load_page_event(menu, info_item, info_page);
+
+    lv_obj_t* diagnostics_item = create_menu_item(main_page, "Diagnostics");
+    lv_menu_set_load_page_event(menu, diagnostics_item, diagnostics_page);
 
     lv_obj_t* bluetooth_item = create_menu_item(main_page, "Bluetooth");
     lv_menu_set_load_page_event(menu, bluetooth_item, bluetooth_page);
@@ -153,13 +160,7 @@ void SettingsScreen::create_info_page(lv_obj_t* parent) {
     create_data_label(parent, "Instant:", &instant_label);
     create_data_label(parent, "Samples:", &samples_label);
     create_data_label(parent, "Raw:", &raw_label);
-    
-    create_separator(parent, "Noise Floor");
-    
-    create_data_label(parent, "Std Dev (g):", &std_dev_g_label);
-    create_data_label(parent, "Std Dev (ADC):", &std_dev_adc_label);
-    create_data_label(parent, "Noise level:", &threshold_ok_label);
-    
+
     create_separator(parent);
    
     create_data_label(parent, "Uptime:", &uptime_label);
@@ -288,8 +289,59 @@ void SettingsScreen::create_data_page(lv_obj_t* parent) {
     create_separator(parent, "Reset");
 
     purge_button = create_button(parent, "Purge History", lv_color_hex(THEME_COLOR_WARNING));
-    lv_obj_set_style_margin_bottom(purge_button, 10, 0); 
+    lv_obj_set_style_margin_bottom(purge_button, 10, 0);
     reset_button = create_button(parent, "Factory Reset", lv_color_hex(THEME_COLOR_ERROR));
+}
+
+void SettingsScreen::create_diagnostics_page(lv_obj_t* parent) {
+    lv_obj_set_layout(parent, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(parent, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_all(parent, 0, 0);
+
+    // Enable vertical scrolling
+    lv_obj_set_scroll_dir(parent, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(parent, LV_SCROLLBAR_MODE_AUTO);
+
+    // Load Cell Status separator
+    create_separator(parent, "Load Cell Status");
+
+    // Status indicator
+    create_data_label(parent, "Status:", &diag_status_label);
+
+    // Calibration factor
+    create_data_label(parent, "Cal. factor:", &diag_calibration_factor_label);
+
+    // Info label (only shown when not calibrated)
+    diag_info_label = lv_label_create(parent);
+    lv_label_set_text(diag_info_label, "");
+    lv_obj_set_style_text_font(diag_info_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(diag_info_label, lv_color_hex(THEME_COLOR_WARNING), 0);
+    lv_obj_set_style_margin_top(diag_info_label, 10, 0);
+    lv_obj_set_style_margin_bottom(diag_info_label, 10, 0);
+    lv_label_set_long_mode(diag_info_label, LV_LABEL_LONG_WRAP);
+    lv_obj_set_width(diag_info_label, 260);
+    lv_obj_add_flag(diag_info_label, LV_OBJ_FLAG_HIDDEN); // Hidden by default
+
+    diag_reset_button = create_button(parent, "Reset Diagnostics", lv_color_hex(THEME_COLOR_WARNING));
+    lv_obj_set_style_margin_bottom(diag_reset_button, 10, 0);
+
+    // Noise Floor separator
+    create_separator(parent, "Noise Floor");
+
+    // Std dev readings (moved from System Info)
+    create_data_label(parent, "Std Dev (g):", &diag_std_dev_g_label);
+    create_data_label(parent, "Std Dev (ADC):", &diag_std_dev_adc_label);
+    create_data_label(parent, "Noise level:", &diag_noise_level_label);
+
+    // Static info label about calibration dependency
+    lv_obj_t* cal_info = lv_label_create(parent);
+    lv_label_set_text(cal_info, "Noise level readings depend on proper calibration.");
+    lv_obj_set_style_text_font(cal_info, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(cal_info, lv_color_hex(THEME_COLOR_TEXT_SECONDARY), 0);
+    lv_obj_set_style_margin_top(cal_info, 10, 0);
+    lv_label_set_long_mode(cal_info, LV_LABEL_LONG_WRAP);
+    lv_obj_set_width(cal_info, 260);
 }
 
 void SettingsScreen::show() {
@@ -313,37 +365,7 @@ void SettingsScreen::update_info(const WeightSensor* weight_sensor, unsigned lon
     set_label_text_float(instant_label, weight_sensor->get_instant_weight(), "g");
     set_label_text_int(samples_label, weight_sensor->get_sample_count());
     set_label_text_int(raw_label, weight_sensor->get_raw_adc_instant());
-    
-    // Update standard deviations only every 1 second to reduce noise
-    static unsigned long last_std_dev_update = 0;
-    unsigned long now = millis();
-    if (now - last_std_dev_update >= 1000) {  // Update every 1 second
-        last_std_dev_update = now;
-        
-        // Get standard deviations using same window as grind control precision settling
-        float std_dev_g = weight_sensor->get_standard_deviation_g(GRIND_SCALE_PRECISION_SETTLING_TIME_MS);  // 500ms window (same as grind control)
-        int32_t std_dev_adc = weight_sensor->get_standard_deviation_adc(GRIND_SCALE_PRECISION_SETTLING_TIME_MS);  // 500ms window
-        
-        char std_dev_g_text[32];
-        snprintf(std_dev_g_text, sizeof(std_dev_g_text), "%.4f", std_dev_g);
-        lv_label_set_text(std_dev_g_label, std_dev_g_text);
-        
-        set_label_text_int(std_dev_adc_label, std_dev_adc);
-        
-        // Check noise level using WeightSensor diagnostic method
-        bool noise_acceptable = weight_sensor->noise_level_diagnostic();
-        
-        // Update UI based on noise level assessment
-        if (noise_acceptable) {
-            lv_label_set_text(threshold_ok_label, "OK");
-            lv_obj_set_style_text_color(threshold_ok_label, lv_color_hex(THEME_COLOR_TEXT_SECONDARY), 0);
-        } else {
-            lv_label_set_text(threshold_ok_label, "Too High");
-            lv_obj_set_style_text_color(threshold_ok_label, lv_color_hex(THEME_COLOR_ERROR), 0);
-        }
-    }
 
-    
     // Update uptime - use compact format to avoid horizontal scrolling
     unsigned long seconds = uptime_ms / 1000;
     unsigned long hours = seconds / 3600;
@@ -355,6 +377,69 @@ void SettingsScreen::update_info(const WeightSensor* weight_sensor, unsigned lon
     lv_label_set_text(uptime_label, uptime_text);
 
     set_label_text_int(memory_label, free_heap / 1024, "kB");
+}
+
+void SettingsScreen::update_diagnostics(WeightSensor* weight_sensor) {
+    if (!visible || !diagnostics_controller) return;
+
+    // Update standard deviations only every 1 second to reduce noise
+    static unsigned long last_std_dev_update = 0;
+    unsigned long now = millis();
+    if (now - last_std_dev_update >= 1000) {  // Update every 1 second
+        last_std_dev_update = now;
+
+        // Get standard deviations using same window as grind control precision settling
+        float std_dev_g = weight_sensor->get_standard_deviation_g(GRIND_SCALE_PRECISION_SETTLING_TIME_MS);  // 500ms window
+        int32_t std_dev_adc = weight_sensor->get_standard_deviation_adc(GRIND_SCALE_PRECISION_SETTLING_TIME_MS);  // 500ms window
+
+        char std_dev_g_text[32];
+        snprintf(std_dev_g_text, sizeof(std_dev_g_text), "%.4f", std_dev_g);
+        lv_label_set_text(diag_std_dev_g_label, std_dev_g_text);
+
+        set_label_text_int(diag_std_dev_adc_label, std_dev_adc);
+
+        // Check noise level using WeightSensor diagnostic method
+        bool noise_acceptable = weight_sensor->noise_level_diagnostic();
+
+        // Update noise level indicator
+        if (noise_acceptable) {
+            lv_label_set_text(diag_noise_level_label, "OK");
+            lv_obj_set_style_text_color(diag_noise_level_label, lv_color_hex(THEME_COLOR_TEXT_SECONDARY), 0);
+        } else {
+            lv_label_set_text(diag_noise_level_label, "Too High");
+            lv_obj_set_style_text_color(diag_noise_level_label, lv_color_hex(THEME_COLOR_ERROR), 0);
+        }
+    }
+
+    // Update calibration factor
+    float cal_factor = weight_sensor->get_calibration_factor();
+    char cal_factor_text[32];
+    snprintf(cal_factor_text, sizeof(cal_factor_text), "%.2f", cal_factor);
+    lv_label_set_text(diag_calibration_factor_label, cal_factor_text);
+
+    // Get highest priority diagnostic
+    DiagnosticCode diagnostic = diagnostics_controller->get_highest_priority_warning();
+
+    // Update status label
+    if (diagnostic == DiagnosticCode::NONE) {
+        lv_label_set_text(diag_status_label, "OK");
+        lv_obj_set_style_text_color(diag_status_label, lv_color_hex(THEME_COLOR_SUCCESS), 0);
+        lv_obj_add_flag(diag_info_label, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_label_set_text(diag_status_label, LV_SYMBOL_WARNING " Warning");
+        lv_obj_set_style_text_color(diag_status_label, lv_color_hex(THEME_COLOR_WARNING), 0);
+
+        // Show appropriate warning message
+        if (diagnostic == DiagnosticCode::LOAD_CELL_NOT_CALIBRATED) {
+            lv_label_set_text(diag_info_label, "Loadcell not calibrated");
+            lv_obj_clear_flag(diag_info_label, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            // For future noise/mechanical warnings, show in info label
+            const char* message = diagnostics_controller->get_diagnostic_message(diagnostic);
+            lv_label_set_text(diag_info_label, message);
+            lv_obj_clear_flag(diag_info_label, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
 }
 
 void SettingsScreen::update_ble_status() {
@@ -660,4 +745,3 @@ void SettingsScreen::update_grind_mode_toggles() {
         lv_obj_clear_state(grind_mode_swipe_toggle, LV_STATE_CHECKED);
     }
 }
-

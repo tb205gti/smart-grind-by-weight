@@ -68,6 +68,11 @@ private:
     
     // WeightSamplingTask integration (RealtimeController removed)
     
+    // Cached calibration flag state to avoid repeated NVS lookups
+    mutable bool calibration_flag_cached_;
+    mutable bool calibration_flag_value_;
+    mutable bool calibration_namespace_initialized_;
+
     // Single calibration conversion point
     float raw_to_weight(int32_t raw_adc_value) const {
         return (float)(raw_adc_value - tare_offset) / cal_factor;
@@ -174,7 +179,11 @@ public:
     float get_saved_calibration_weight();
     void load_calibration();
     void clear_calibration_data();
-    
+
+    // Calibration flag (for diagnostics)
+    bool is_calibrated() const;
+    void set_calibrated(bool calibrated);
+
     // Hardware validation and information
     bool validate_hardware();
     const char* get_adc_driver_name() const;
@@ -189,7 +198,7 @@ public:
     CircularBufferMath* get_raw_filter() { return &raw_filter; }     // Direct access to raw data math helper
     float get_saved_calibration_factor();                            // Get calibration factor from preferences
     void set_hardware_initialized() { data_available = true; }       // Mark hardware as ready
-    
+
     // Weight activity timing (for screen timeout reset)
     uint32_t get_ms_since_last_weight_activity() const;
     

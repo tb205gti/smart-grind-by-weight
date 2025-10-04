@@ -3,10 +3,14 @@
 #include <Arduino.h>
 #include <LittleFS.h>
 #include <Preferences.h>
+#include <esp_err.h>
+#include <esp_system.h>
+#include <nvs_flash.h>
 #include <cstdint>
 #include "../../config/constants.h"
 #include "../../controllers/grind_mode_traits.h"
 #include "../../logging/grind_logging.h"
+#include "../../system/diagnostics_controller.h"
 #include "../components/blocking_overlay.h"
 #include "../components/ui_operations.h"
 #include "../event_bridge_lvgl.h"
@@ -28,6 +32,7 @@ void SettingsUIController::register_events() {
     EventBridgeLVGL::register_handler(ET::SETTINGS_PURGE, [this](lv_event_t*) { handle_purge(); });
     EventBridgeLVGL::register_handler(ET::SETTINGS_MOTOR_TEST, [this](lv_event_t*) { handle_motor_test(); });
     EventBridgeLVGL::register_handler(ET::SETTINGS_TARE, [this](lv_event_t*) { handle_tare(); });
+    EventBridgeLVGL::register_handler(ET::SETTINGS_DIAGNOSTIC_RESET, [this](lv_event_t*) { handle_diagnostics_reset(); });
     EventBridgeLVGL::register_handler(ET::SETTINGS_BACK, [this](lv_event_t*) { handle_back(); });
     EventBridgeLVGL::register_handler(ET::SETTINGS_REFRESH_STATS, [this](lv_event_t*) { handle_refresh_stats(); });
 
@@ -54,6 +59,7 @@ void SettingsUIController::register_events() {
     register_lvgl_event(ui_manager_->settings_screen.get_cal_button(), LV_EVENT_CLICKED, ET::SETTINGS_CALIBRATE);
     register_lvgl_event(ui_manager_->settings_screen.get_purge_button(), LV_EVENT_CLICKED, ET::SETTINGS_PURGE);
     register_lvgl_event(ui_manager_->settings_screen.get_reset_button(), LV_EVENT_CLICKED, ET::SETTINGS_RESET);
+    register_lvgl_event(ui_manager_->settings_screen.get_diag_reset_button(), LV_EVENT_CLICKED, ET::SETTINGS_DIAGNOSTIC_RESET);
     register_lvgl_event(ui_manager_->settings_screen.get_motor_test_button(), LV_EVENT_CLICKED, ET::SETTINGS_MOTOR_TEST);
     register_lvgl_event(ui_manager_->settings_screen.get_tare_button(), LV_EVENT_CLICKED, ET::SETTINGS_TARE);
     register_lvgl_event(ui_manager_->settings_screen.get_refresh_stats_button(), LV_EVENT_CLICKED, ET::SETTINGS_REFRESH_STATS);
@@ -77,6 +83,7 @@ void SettingsUIController::update() {
     size_t free_heap = ESP.getFreeHeap();
 
     ui_manager_->settings_screen.update_info(sensor, uptime_ms, free_heap);
+    ui_manager_->settings_screen.update_diagnostics(sensor);
     ui_manager_->settings_screen.update_ble_status();
 }
 
@@ -152,6 +159,42 @@ void SettingsUIController::handle_back() {
 void SettingsUIController::handle_refresh_stats() {
     if (!ui_manager_) return;
     ui_manager_->settings_screen.refresh_statistics();
+}
+
+void SettingsUIController::handle_diagnostics_reset() {
+    if (!ui_manager_) return;
+
+    ui_manager_->show_confirmation(
+        "Reset Diagnostics",
+        "This will clear all active diagnostic warnings.\n\nContinue?",
+        "RESET",
+        lv_color_hex(THEME_COLOR_WARNING),
+        [this]() { perform_diagnostics_reset(); },
+        "CANCEL",
+        [this]() { return_to_settings(); }
+    );
+}
+
+void SettingsUIController::perform_diagnostics_reset() {
+    if (!ui_manager_) return;
+
+    auto* diagnostics = ui_manager_->diagnostics_controller_.get();
+    if (diagnostics) {
+        diagnostics->reset_diagnostic(DiagnosticCode::LOAD_CELL_NOISY_SUSTAINED);
+        diagnostics->reset_diagnostic(DiagnosticCode::MECHANICAL_INSTABILITY);
+        diagnostics->reset_noise_tracking();
+    }
+
+    auto* grind_controller = ui_manager_->get_grind_controller();
+    if (grind_controller) {
+        grind_controller->reset_mechanical_anomaly_count();
+    }
+
+    auto* hardware = ui_manager_->get_hardware_manager();
+    auto* sensor = hardware ? hardware->get_weight_sensor() : nullptr;
+    if (sensor) {
+        ui_manager_->settings_screen.update_diagnostics(sensor);
+    }
 }
 
 void SettingsUIController::handle_ble_toggle() {
@@ -328,25 +371,20 @@ void SettingsUIController::handle_brightness_screensaver_slider_released() {
 void SettingsUIController::perform_factory_reset() {
     if (!ui_manager_) return;
 
-    auto* profiles = ui_manager_->get_profile_controller();
-    if (profiles) {
-        profiles->set_profile_weight(0, USER_SINGLE_ESPRESSO_WEIGHT_G);
-        profiles->set_profile_weight(1, USER_DOUBLE_ESPRESSO_WEIGHT_G);
-        profiles->set_profile_weight(2, USER_CUSTOM_PROFILE_WEIGHT_G);
+    LOG_DEBUG_PRINTLN("Factory reset: clearing NVS preferences and rebooting...");
+
+    nvs_flash_deinit();
+    esp_err_t erase_result = nvs_flash_erase();
+
+    if (erase_result == ESP_OK) {
+        LOG_DEBUG_PRINTLN("Factory reset: NVS erase successful. Restarting device...");
+    } else {
+        LOG_DEBUG_PRINTF("Factory reset: NVS erase failed (code %d). Forcing restart...\n",
+                         static_cast<int>(erase_result));
     }
 
-    auto* hardware = ui_manager_->get_hardware_manager();
-    if (hardware && hardware->get_load_cell()) {
-        hardware->get_load_cell()->set_calibration_factor(USER_DEFAULT_CALIBRATION_FACTOR);
-        hardware->get_load_cell()->save_calibration();
-    }
-
-    if (LittleFS.exists("/last_grind.txt")) {
-        LittleFS.remove("/last_grind.txt");
-    }
-
-    LOG_DEBUG_PRINTLN("Factory reset completed.");
-    return_to_settings();
+    delay(100);
+    esp_restart();
 }
 
 void SettingsUIController::execute_purge_operation() {

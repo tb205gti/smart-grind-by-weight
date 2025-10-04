@@ -19,4 +19,14 @@ public:
 
 private:
     UIManager* ui_manager_;
+    unsigned long noise_step_enter_ms_ = 0;
+    unsigned long noise_ok_since_ms_ = 0;
+    bool noise_check_active_ = false;
+    bool noise_check_passed_ = false;
+    bool noise_check_forced_pass_ = false;
+
+    void start_noise_check();
+    void reset_noise_check_state();
+    void update_noise_check();
+    void complete_calibration();
 };

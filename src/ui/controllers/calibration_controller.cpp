@@ -1,7 +1,9 @@
 #include "calibration_controller.h"
 
 #include <Arduino.h>
+#include <limits>
 #include "../../config/constants.h"
+#include "../../system/diagnostics_controller.h"
 #include "../components/ui_operations.h"
 #include "../ui_manager.h"
 
@@ -50,6 +52,15 @@ void CalibrationUIController::update() {
     }
 
     CalibrationStep current_step = ui_manager_->calibration_screen.get_step();
+    if (current_step != CAL_STEP_NOISE_CHECK && noise_check_active_) {
+        reset_noise_check_state();
+    }
+
+    if (current_step == CAL_STEP_NOISE_CHECK) {
+        update_noise_check();
+        return;
+    }
+
     if (current_step == CAL_STEP_COMPLETE) {
         float weight = ui_manager_->get_hardware_manager()->get_weight_sensor()->get_display_weight();
         ui_manager_->calibration_screen.update_current_weight(weight);
@@ -72,10 +83,16 @@ void CalibrationUIController::handle_ok() {
         case CAL_STEP_WEIGHT: {
             float cal_weight = ui_manager_->calibration_screen.get_calibration_weight();
             UIOperations::execute_calibration(ui_manager_->get_hardware_manager(), cal_weight, [this]() {
-                ui_manager_->calibration_screen.set_step(CAL_STEP_COMPLETE);
+                ui_manager_->calibration_screen.set_step(CAL_STEP_NOISE_CHECK);
+                start_noise_check();
             });
             break;
         }
+        case CAL_STEP_NOISE_CHECK:
+            if (noise_check_passed_) {
+                complete_calibration();
+            }
+            break;
         case CAL_STEP_COMPLETE:
             ui_manager_->set_current_tab(3);
             ui_manager_->switch_to_state(UIState::SETTINGS);
@@ -85,6 +102,8 @@ void CalibrationUIController::handle_ok() {
 
 void CalibrationUIController::handle_cancel() {
     if (!ui_manager_) return;
+
+    reset_noise_check_state();
     ui_manager_->set_current_tab(3);
     ui_manager_->switch_to_state(UIState::SETTINGS);
 }
@@ -122,5 +141,143 @@ void CalibrationUIController::handle_minus(lv_event_code_t code) {
         if (ui_manager_->jog_adjust_controller_) {
             ui_manager_->jog_adjust_controller_->stop();
         }
+    }
+}
+
+void CalibrationUIController::start_noise_check() {
+    noise_step_enter_ms_ = millis();
+    noise_ok_since_ms_ = 0;
+    noise_check_passed_ = false;
+    noise_check_active_ = true;
+    noise_check_forced_pass_ = false;
+
+    if (!ui_manager_) {
+        return;
+    }
+
+    auto& screen = ui_manager_->calibration_screen;
+    screen.set_ok_button_enabled(false);
+    screen.update_noise_status("Status: Checking...", lv_color_hex(THEME_COLOR_TEXT_SECONDARY));
+    screen.update_noise_metric(std::numeric_limits<float>::quiet_NaN());
+}
+
+void CalibrationUIController::reset_noise_check_state() {
+    noise_check_active_ = false;
+    noise_check_passed_ = false;
+    noise_step_enter_ms_ = 0;
+    noise_ok_since_ms_ = 0;
+    noise_check_forced_pass_ = false;
+}
+
+void CalibrationUIController::update_noise_check() {
+    if (!ui_manager_ || !noise_check_active_) {
+        return;
+    }
+
+    if (ui_manager_->calibration_screen.get_step() != CAL_STEP_NOISE_CHECK) {
+        return;
+    }
+
+    auto* hardware = ui_manager_->get_hardware_manager();
+    if (!hardware) {
+        return;
+    }
+
+    auto* weight_sensor = hardware->get_weight_sensor();
+    if (!weight_sensor) {
+        return;
+    }
+
+    constexpr unsigned long kMinWaitMs = 3000;
+    constexpr unsigned long kStableWaitMs = 5000;
+    constexpr unsigned long kForceEnableMs = 15000;
+
+    unsigned long now = millis();
+    float std_dev = weight_sensor->get_standard_deviation_g(GRIND_SCALE_PRECISION_SETTLING_TIME_MS);
+    ui_manager_->calibration_screen.update_noise_metric(std_dev);
+
+    bool noise_ok = weight_sensor->noise_level_diagnostic();
+
+    if (!noise_check_passed_) {
+        if (now - noise_step_enter_ms_ >= kForceEnableMs) {
+            noise_check_passed_ = true;
+            noise_check_forced_pass_ = true;
+            ui_manager_->calibration_screen.update_noise_status("Status: Too noisy",
+                                                                lv_color_hex(THEME_COLOR_WARNING));
+            ui_manager_->calibration_screen.set_ok_button_enabled(true);
+            return;
+        }
+
+        if (now - noise_step_enter_ms_ < kMinWaitMs) {
+            ui_manager_->calibration_screen.update_noise_status("Status: Checking...",
+                                                                lv_color_hex(THEME_COLOR_TEXT_SECONDARY));
+            ui_manager_->calibration_screen.set_ok_button_enabled(false);
+            noise_ok_since_ms_ = 0;
+            return;
+        }
+
+        if (noise_ok) {
+            if (noise_ok_since_ms_ == 0) {
+                noise_ok_since_ms_ = now;
+            }
+
+            unsigned long stable_ms = now - noise_ok_since_ms_;
+            if (stable_ms >= kStableWaitMs) {
+                noise_check_passed_ = true;
+                noise_check_forced_pass_ = false;
+                ui_manager_->calibration_screen.update_noise_status("Status: OK",
+                                                                    lv_color_hex(THEME_COLOR_SUCCESS));
+                ui_manager_->calibration_screen.set_ok_button_enabled(true);
+            } else {
+                unsigned long remaining_ms = kStableWaitMs - stable_ms;
+                unsigned int remaining_sec = static_cast<unsigned int>((remaining_ms + 999) / 1000);
+
+                char status_text[48];
+                snprintf(status_text, sizeof(status_text), "Status: Stable (%us)", remaining_sec);
+                ui_manager_->calibration_screen.update_noise_status(status_text,
+                                                                    lv_color_hex(THEME_COLOR_TEXT_PRIMARY));
+                ui_manager_->calibration_screen.set_ok_button_enabled(false);
+            }
+        } else {
+            noise_ok_since_ms_ = 0;
+            ui_manager_->calibration_screen.update_noise_status("Status: Too noisy",
+                                                                lv_color_hex(THEME_COLOR_ERROR));
+            ui_manager_->calibration_screen.set_ok_button_enabled(false);
+        }
+        return;
+    }
+
+    // Keep UI consistent once passed
+    if (noise_check_forced_pass_) {
+        ui_manager_->calibration_screen.update_noise_status("Status: Too noisy",
+                                                            lv_color_hex(THEME_COLOR_WARNING));
+    } else {
+        ui_manager_->calibration_screen.update_noise_status("Status: OK", lv_color_hex(THEME_COLOR_SUCCESS));
+    }
+    ui_manager_->calibration_screen.set_ok_button_enabled(true);
+}
+
+void CalibrationUIController::complete_calibration() {
+    if (!ui_manager_) {
+        return;
+    }
+
+    auto* hardware = ui_manager_->get_hardware_manager();
+    auto* weight_sensor = hardware ? hardware->get_weight_sensor() : nullptr;
+
+    if (weight_sensor) {
+        weight_sensor->set_calibrated(true);
+    }
+
+    if (ui_manager_->diagnostics_controller_) {
+        ui_manager_->diagnostics_controller_->reset_diagnostic(DiagnosticCode::LOAD_CELL_NOISY_SUSTAINED);
+        ui_manager_->diagnostics_controller_->reset_noise_tracking();
+    }
+
+    reset_noise_check_state();
+    ui_manager_->calibration_screen.set_step(CAL_STEP_COMPLETE);
+
+    if (weight_sensor) {
+        ui_manager_->calibration_screen.update_current_weight(weight_sensor->get_display_weight());
     }
 }

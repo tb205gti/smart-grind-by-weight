@@ -5,6 +5,7 @@
 enum CalibrationStep {
     CAL_STEP_EMPTY,
     CAL_STEP_WEIGHT,
+    CAL_STEP_NOISE_CHECK,
     CAL_STEP_COMPLETE
 };
 
@@ -14,6 +15,8 @@ private:
     lv_obj_t* title_label;
     lv_obj_t* instruction_label;
     lv_obj_t* weight_label;
+    lv_obj_t* noise_status_label;
+    lv_obj_t* noise_metric_label;
     lv_obj_t* ok_button;
     lv_obj_t* cancel_button;
     lv_obj_t* plus_btn;
@@ -31,6 +34,12 @@ public:
     void set_step(CalibrationStep step);
     void update_current_weight(float weight);
     void update_calibration_weight(float weight);
+    void update_noise_status(const char* text, lv_color_t color);
+    void update_noise_metric(float std_dev_g);
+    void set_noise_ui_visible(bool visible);
+    void set_ok_button_enabled(bool enabled);
+    void set_ok_button_text(const char* text);
+    void set_cancel_button_text(const char* text);
     
     bool is_visible() const { return visible; }
     CalibrationStep get_step() const { return current_step; }

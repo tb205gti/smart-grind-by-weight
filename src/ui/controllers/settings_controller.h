@@ -18,6 +18,7 @@ public:
     void handle_tare();
     void handle_back();
     void handle_refresh_stats();
+    void handle_diagnostics_reset();
     void handle_ble_toggle();
     void handle_ble_startup_toggle();
     void handle_logging_toggle();
@@ -42,4 +43,5 @@ private:
     void motor_timer_cb(lv_timer_t* timer);
     static void static_motor_timer_cb(lv_timer_t* timer);
     void return_to_settings();
+    void perform_diagnostics_reset();
 };

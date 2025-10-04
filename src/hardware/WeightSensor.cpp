@@ -35,7 +35,7 @@ WeightSensor::WeightSensor() {
     last_update = 0;
     data_available = false;
     prefs = nullptr;
-    
+
     // Initialize tare state
     doTare = false;
     tareTimes = 0;
@@ -51,7 +51,11 @@ WeightSensor::WeightSensor() {
     not_settled_start_time = 0;
     currently_not_settled = false;
     display_noisy_state = false;  // Start showing "Yes"
-    
+
+    calibration_flag_cached_ = false;
+    calibration_flag_value_ = false;
+    calibration_namespace_initialized_ = false;
+
     // RealtimeController integration removed - handled by WeightSamplingTask
 
 #if SYS_ENABLE_REALTIME_HEARTBEAT
@@ -96,6 +100,10 @@ void WeightSensor::init(Preferences* preferences) {
     doTare = false;
     tareTimes = 0;
     tareStatus = false;
+
+    calibration_flag_cached_ = false;
+    calibration_flag_value_ = false;
+    calibration_namespace_initialized_ = false;
     
     LOG_BLE("WeightSensor configuration initialized - hardware will be initialized by WeightSamplingTask\n");
 }
@@ -477,6 +485,50 @@ void WeightSensor::clear_calibration_data() {
         prefs->remove("hx_wt");
         cal_factor = USER_DEFAULT_CALIBRATION_FACTOR;
         LOG_BLE("Calibration data cleared, using defaults\n");
+    }
+}
+
+bool WeightSensor::is_calibrated() const {
+    if (!calibration_flag_cached_) {
+        Preferences load_cell_prefs;
+        bool prefs_opened = false;
+
+        if (calibration_namespace_initialized_) {
+            prefs_opened = load_cell_prefs.begin("load_cell", true);
+        } else {
+            prefs_opened = load_cell_prefs.begin("load_cell", false);
+            if (prefs_opened) {
+                calibration_namespace_initialized_ = true;
+            }
+        }
+
+        if (prefs_opened) {
+            calibration_flag_value_ = load_cell_prefs.getBool("calibrated", false);
+            load_cell_prefs.end();
+        } else {
+            calibration_flag_value_ = false;
+        }
+
+        calibration_flag_cached_ = true;
+    }
+
+    return calibration_flag_value_;
+}
+
+void WeightSensor::set_calibrated(bool calibrated) {
+    Preferences load_cell_prefs;
+    if (load_cell_prefs.begin("load_cell", false)) {
+        load_cell_prefs.putBool("calibrated", calibrated);
+        load_cell_prefs.end();
+
+        calibration_namespace_initialized_ = true;
+        calibration_flag_value_ = calibrated;
+        calibration_flag_cached_ = true;
+
+        LOG_BLE("Load cell calibration flag set to: %s\n", calibrated ? "true" : "false");
+    } else {
+        calibration_flag_cached_ = false; // retry next time if write failed
+        LOG_BLE("ERROR: Failed to open load_cell preferences for calibration flag update\n");
     }
 }
 

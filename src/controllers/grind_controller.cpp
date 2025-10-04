@@ -2,6 +2,7 @@
 #include "grind_events.h"
 #include "../hardware/circular_buffer_math/circular_buffer_math.h"
 #include "../config/constants.h"
+#include "../system/diagnostics_controller.h"
 #include <Arduino.h>
 #include <cstdarg>
 #include <cstring>
@@ -30,6 +31,11 @@ void GrindController::init(WeightSensor* lc, Grinder* gr, Preferences* prefs) {
     time_grind_start_ms = 0;
     mode = GrindMode::WEIGHT;
     last_error_message[0] = '\0';
+
+    mechanical_anomaly_count_ = 0;
+    last_mechanical_event_ms_ = 0;
+    last_mechanical_weight_ = 0.0f;
+    mechanical_monitor_initialized_ = false;
     
     // Set up grinder background indicator callback (if enabled)
     if (grinder) {
@@ -137,6 +143,12 @@ void GrindController::start_grind(float target, uint32_t time_ms, GrindMode grin
     additional_pulse_count = 0;
     pulse_duration_ms = GRIND_TIME_PULSE_DURATION_MS;
 
+    reset_mechanical_anomaly_count();
+
+    if (diagnostics_controller_) {
+        diagnostics_controller_->reset_diagnostic(DiagnosticCode::MECHANICAL_INSTABILITY);
+    }
+
     if (mode == GrindMode::WEIGHT) {
         active_strategy = static_cast<IGrindStrategy*>(&weight_strategy);
     } else if (mode == GrindMode::TIME) {
@@ -221,6 +233,8 @@ void GrindController::update() {
     loop_data.phase_id = get_current_phase_id();
     loop_data.weight_delta = loop_data.current_weight - last_logged_weight;
     loop_data.flow_rate = weight_sensor ? weight_sensor->get_flow_rate() : 0.0f;
+
+    monitor_mechanical_instability(loop_data);
     
     switch (phase) {
         case GrindPhase::INITIALIZING:
@@ -431,6 +445,38 @@ void GrindController::update() {
 }
 
 // OLD predictive_grind method removed - logic now inline in update()
+
+void GrindController::reset_mechanical_anomaly_count() {
+    mechanical_anomaly_count_ = 0;
+    last_mechanical_event_ms_ = 0;
+    last_mechanical_weight_ = 0.0f;
+    mechanical_monitor_initialized_ = false;
+}
+
+void GrindController::monitor_mechanical_instability(const GrindLoopData& loop_data) {
+    // Only monitor during active grinding with motor running
+    bool grinding_active = grinder && grinder->is_grinding();
+    if (!grinding_active) {
+        mechanical_monitor_initialized_ = false;
+        return;
+    }
+
+    if (!mechanical_monitor_initialized_) {
+        last_mechanical_weight_ = loop_data.current_weight;
+        mechanical_monitor_initialized_ = true;
+        return;
+    }
+
+    float delta = loop_data.current_weight - last_mechanical_weight_;
+    if (delta <= -GRIND_MECHANICAL_DROP_THRESHOLD_G) {
+        if (loop_data.now - last_mechanical_event_ms_ >= GRIND_MECHANICAL_EVENT_COOLDOWN_MS) {
+            mechanical_anomaly_count_++;
+            last_mechanical_event_ms_ = loop_data.now;
+        }
+    }
+
+    last_mechanical_weight_ = loop_data.current_weight;
+}
 
 void GrindController::final_measurement(const GrindLoopData& loop_data) {
     final_weight = weight_sensor->get_weight_high_latency();

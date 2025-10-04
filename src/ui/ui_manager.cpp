@@ -39,6 +39,10 @@ void UIManager::init(HardwareManager* hw_mgr, StateMachine* sm,
 
     // Register controller event hooks now that the UI elements exist
     register_controller_events();
+
+    if (grind_controller) {
+        grind_controller->set_diagnostics_controller(diagnostics_controller_.get());
+    }
     
     // Set initial brightness from preferences
     float initial_brightness = USER_SCREEN_BRIGHTNESS_NORMAL;
@@ -71,7 +75,7 @@ void UIManager::create_ui() {
     grinding_screen.init(hardware_manager->get_preferences());
     grinding_screen.create();
     grinding_screen.set_mode(current_mode);
-    settings_screen.create(bluetooth_manager, grind_controller, &grinding_screen, hardware_manager);
+    settings_screen.create(bluetooth_manager, grind_controller, &grinding_screen, hardware_manager, diagnostics_controller_.get());
     calibration_screen.create();
     confirm_screen.create();
     ota_screen.create();
@@ -106,10 +110,15 @@ void UIManager::create_ui() {
 void UIManager::update() {
     if (!initialized) return;
 
+    // Update diagnostics controller
+    if (diagnostics_controller_) {
+        diagnostics_controller_->update(hardware_manager, grind_controller, millis());
+    }
+
     if (screen_timeout_controller_) {
         screen_timeout_controller_->update();
     }
-    
+
     bool ota_cycle_consumed = false;
     if (ota_data_export_controller_) {
         ota_cycle_consumed = ota_data_export_controller_->update();
@@ -255,6 +264,12 @@ void UIManager::init_controllers() {
     ota_data_export_controller_ = std::make_unique<OtaDataExportController>(this);
     screen_timeout_controller_ = std::make_unique<ScreenTimeoutController>(this);
     jog_adjust_controller_ = std::make_unique<JogAdjustController>(this);
+    diagnostics_controller_ = std::make_unique<DiagnosticsController>();
+
+    // Initialize diagnostics controller
+    if (diagnostics_controller_) {
+        diagnostics_controller_->init(hardware_manager);
+    }
 }
 
 void UIManager::register_controller_events() {

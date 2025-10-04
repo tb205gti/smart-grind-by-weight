@@ -24,6 +24,7 @@
 #include "controllers/settings_controller.h"
 #include "controllers/status_indicator_controller.h"
 #include "../system/state_machine.h"
+#include "../system/diagnostics_controller.h"
 #include "../controllers/profile_controller.h"
 #include "../controllers/grind_controller.h"
 #include "../controllers/grind_events.h"
@@ -90,6 +91,7 @@ private:
     std::unique_ptr<OtaDataExportController> ota_data_export_controller_;
     std::unique_ptr<ScreenTimeoutController> screen_timeout_controller_;
     std::unique_ptr<JogAdjustController> jog_adjust_controller_;
+    std::unique_ptr<DiagnosticsController> diagnostics_controller_;
 
 public:
     ReadyScreen ready_screen;

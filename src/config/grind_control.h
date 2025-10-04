@@ -50,6 +50,11 @@
 #define GRIND_MOTOR_MAX_PULSE_DURATION_MS 300.0f                                  // Maximum motor pulse duration  
 #define GRIND_MOTOR_SETTLING_TIME_MS 200                                          // Motor vibration settling time
 
+// Mechanical instability detection
+#define GRIND_MECHANICAL_DROP_THRESHOLD_G 0.4f                                    // Weight drop considered mechanical instability
+#define GRIND_MECHANICAL_EVENT_COOLDOWN_MS 200                                    // Minimum time between detecting drops
+#define GRIND_MECHANICAL_EVENT_REQUIRED_COUNT 3                                   // Events required to flag diagnostic
+
 // Scale settling timing
 #define GRIND_SCALE_PRECISION_SETTLING_TIME_MS 500                                // High-precision settling time
 #define GRIND_SCALE_SETTLING_TIMEOUT_MS 10000                                     // Maximum time to wait for settling
@@ -63,4 +68,3 @@
 // Calculated sample counts based on hardware rate
 #define GRIND_TARE_SAMPLE_COUNT (GRIND_TARE_SAMPLE_WINDOW_MS / HW_LOADCELL_SAMPLE_INTERVAL_MS)
 #define GRIND_CALIBRATION_SAMPLE_COUNT (GRIND_CALIBRATION_SAMPLE_WINDOW_MS / HW_LOADCELL_SAMPLE_INTERVAL_MS)
-
