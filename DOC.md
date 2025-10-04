@@ -202,16 +202,25 @@ After flashing firmware, calibrate the load cell for accurate measurements:
 
 **Tip**: A coffee mug with water makes ideal calibration weight - weigh it on kitchen scale first.
 
-### Noise Floor Diagnostics
+### Diagnostics System
 
-Access via **Settings → System Info → Noise Floor diagnostics**.
+The system includes comprehensive load cell health monitoring accessible via **Settings → Diagnostics**. A warning icon (⚠) appears in the top-right corner when diagnostics are active - tap it to navigate directly to the diagnostics page.
+
+**Diagnostic Types:**
+1. **Load Cell Not Calibrated** - Appears until calibration is completed via Settings → Tools → Calibrate
+2. **Sustained Noise** - Triggers after 60 seconds of excessive noise; clears after 120 seconds of acceptable levels
+3. **Mechanical Instability** - Detects sudden weight drops during grinding (3+ events); auto-resets on next grind or via manual reset
+
+**Noise Floor Diagnostics:**
+
+Access via **Settings → Diagnostics → Noise Floor**.
 
 **Three values displayed:**
 1. **Standard Deviation (grams)** - Noise level in calibrated weight units
-2. **Standard Deviation (ADC)** - Raw sensor noise values  
+2. **Standard Deviation (ADC)** - Raw sensor noise values
 3. **Noise Level Indicator** - Shows if noise will cause slow taring (>2s) or timeouts
 
-**Important:** The noise diagnostic is based on calibrated gram values - you must calibrate the sensor first as raw ADC values are meaningless. High noise readings indicate wiring issues (check shield connection, use shorter wire leads). Read diagnostics in a stable, vibration-free environment for accurate assessment.
+**Important:** Noise diagnostics require prior calibration as they're based on calibrated gram values. High noise readings indicate wiring issues (check shield connection, use shorter wire leads). Read diagnostics in a stable, vibration-free environment for accurate assessment.
 
 ---
 
@@ -281,9 +290,14 @@ Main Screen (swipe left/right between tabs, up/down to toggle weight/time mode i
     +-- System Info
     |   |-- Firmware version & build number
     |   |-- Real-time weight sensor data (instant, samples, raw)
-    |   |-- Noise Floor diagnostics (see [Noise Floor Diagnostics](#noise-floor-diagnostics) for details)
     |   |-- Uptime display
     |   \-- Memory usage
+    |
+    +-- Diagnostics
+    |   |-- Load Cell Status (calibration flag, calibration factor)
+    |   |-- Noise Floor (std dev g/ADC, noise level indicator)
+    |   |-- Active diagnostic warnings
+    |   \-- Reset diagnostics button
     |
     +-- Bluetooth
     |   |-- Bluetooth toggle (30m timer)

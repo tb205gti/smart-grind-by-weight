@@ -33,9 +33,10 @@ python3 tools/grinder.py analyze
 
 **Key Components:**
 - **HardwareManager**: Central hardware coordinator
-- **GrindController**: 9-phase state machine with predictive flow control, 10 pulse corrections, and time mode additional pulses
-- **LoadCell (HX711)**: Multi-mode precision weight measurement (instant, smoothed, filtered)
-- **UIManager**: 7 screens with LVGL integration, hierarchical settings menu with 6 organized sections (Info, Bluetooth, Display, Grind Mode, Tools, Data), split-button layout for time mode pulses
+- **GrindController**: 9-phase state machine with predictive flow control, 10 pulse corrections, mechanical instability detection, and time mode additional pulses
+- **LoadCell (HX711)**: Multi-mode precision weight measurement (instant, smoothed, filtered), calibration flag, noise diagnostics
+- **DiagnosticsController**: System health monitoring (calibration status, sustained noise, mechanical instability), state persistence, hysteresis, priority-based warnings
+- **UIManager**: 7 screens with LVGL integration, hierarchical settings menu with 7 organized sections (Info, Diagnostics, Bluetooth, Display, Grind Mode, Tools, Data), warning icon indicator, split-button layout for time mode pulses
 - **StateMachine**: Central state coordination (READY → GRINDING → GRIND_COMPLETE)
 
 **Update Intervals:** 20ms grind control, 25ms load cell (active), 50ms UI/hardware
