@@ -10,7 +10,7 @@ from circular_buffer_math import calculate_95th_percentile_series
 
 # --- Configuration ---
 DB_FILE = os.environ.get('GRIND_DB_PATH', '../database/grinder_data.db')
-TOLERANCE_G = 0.05  # Actual grind accuracy tolerance
+TOLERANCE_G = 0.03  # Actual grind accuracy tolerance
 PROFILE_MAP = {0: "SINGLE", 1: "DOUBLE", 2: "CUSTOM"}
 MODE_MAP = {0: "WEIGHT", 1: "TIME"}
 TERMINATION_REASON_MAP = {
@@ -483,7 +483,7 @@ if analysis_mode == "Single Session":
             is_negative = session_data['error_grams'] < 0
             error_color = "inverse" if (is_within_tolerance and is_negative) or (not is_within_tolerance and not is_negative) else "normal"
             c1.metric("Target (g)", f"{session_data['target_weight']:.2f}", f"{session_data['error_grams']:+.2f} g",
-                      delta_color=error_color, help="Green if |error| < 0.05g, Red otherwise.")
+                      delta_color=error_color, help="Green if |error| < 0.03g, Red otherwise.")
             c2.metric("Final (g)", f"{session_data['final_weight']:.2f}", 
                      help="Final settled weight after grind completion. Measured during FINAL_SETTLING phase when motor is off and vibrations have stopped.")
             c3.metric("Grind Time (s)", f"{grind_time_s:.1f}", 

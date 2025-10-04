@@ -27,7 +27,7 @@ The Smart Grind-by-Weight is a user-friendly, touch interface-driven, highly acc
 **The concept is simple:** Perform a "brain swap" on your grinder. Replace the original controller with our intelligent ESP32-S3 controller and add a precision load cell to the mix.
 
 **Upgrade cost:** €30-40 in parts  
-**Target accuracy:** ±0.05g tolerance  
+**Target accuracy:** ±0.03g tolerance  
 **No regrets**: No permanent modifications, and original grind-by-time mode is also available
 
 ---
@@ -36,7 +36,7 @@ The Smart Grind-by-Weight is a user-friendly, touch interface-driven, highly acc
 
 - **User-friendly interface** with 3 profiles: Single, Double, Custom
 - **Beautiful display** with simple graphics or detailed charts (easily switchable)
-- **High accuracy**: ±0.05g error tolerance  
+- **High accuracy**: ±0.03g error tolerance  
 - **Zero-shot learning**: Algorithm adapts instantly to any grind size, bean setting, humidity etc. without manual tuning
 - **Original timed run preserved** – there is a setting to enable the original Grind-By-Time mode
 - **BLE OTA updates** for firmware

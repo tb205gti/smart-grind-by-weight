@@ -11,7 +11,7 @@
 // GRIND CONTROL TUNING
 //------------------------------------------------------------------------------
 // Main accuracy and timeout settings
-#define GRIND_ACCURACY_TOLERANCE_G 0.05f                                  // Final target accuracy tolerance
+#define GRIND_ACCURACY_TOLERANCE_G 0.03f                                  // Final target accuracy tolerance
 #define GRIND_TIMEOUT_SEC 30                                              // Maximum time for grind operation
 #define GRIND_MAX_PULSE_ATTEMPTS 10                                       // Maximum pulse corrections before stopping
 
