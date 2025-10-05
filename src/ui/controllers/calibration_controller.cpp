@@ -51,6 +51,18 @@ void CalibrationUIController::update() {
         return;
     }
 
+    // Continuously reset noise diagnostic during entire calibration sequence
+    if (ui_manager_->diagnostics_controller_) {
+        auto active_diagnostics = ui_manager_->diagnostics_controller_->get_active_diagnostics();
+        for (const auto& diagnostic : active_diagnostics) {
+            if (diagnostic.code == DiagnosticCode::LOAD_CELL_NOISY_SUSTAINED) {
+                ui_manager_->diagnostics_controller_->reset_diagnostic(DiagnosticCode::LOAD_CELL_NOISY_SUSTAINED);
+                ui_manager_->diagnostics_controller_->reset_noise_tracking();
+                break;
+            }
+        }
+    }
+
     CalibrationStep current_step = ui_manager_->calibration_screen.get_step();
     if (current_step != CAL_STEP_NOISE_CHECK && noise_check_active_) {
         reset_noise_check_state();
@@ -277,11 +289,6 @@ void CalibrationUIController::complete_calibration() {
 
     if (weight_sensor) {
         weight_sensor->set_calibrated(true);
-    }
-
-    if (ui_manager_->diagnostics_controller_) {
-        ui_manager_->diagnostics_controller_->reset_diagnostic(DiagnosticCode::LOAD_CELL_NOISY_SUSTAINED);
-        ui_manager_->diagnostics_controller_->reset_noise_tracking();
     }
 
     reset_noise_check_state();
