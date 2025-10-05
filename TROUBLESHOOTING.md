@@ -91,5 +91,13 @@ Check Settings → Diagnostics → "Noise Floor" section (see [Diagnostics Syste
    - Shorten load cell cables if possible
    - Ensure clean, solid connections
 
-2. **If wiring issues persist:**
+2. **Check calibration factor (reference examples only):**
+
+   Calibration factors vary between individual load cells, but extreme deviations may indicate hardware issues. Check your calibration factor in Settings → Diagnostics → Load Cell Status. Example values from tested units:
+   - **1KG T70 load cell**: ±4400 (example)
+   - **0.3KG Mavin Load Cell**: ±6580 (example)
+
+   **Note:** These are examples only and can differ significantly between load cells. Use them as rough reference points, not expected values.
+
+3. **If wiring issues persist:**
    - Increase `GRIND_SCALE_SETTLING_TOLERANCE_G` parameter for more noise tolerance
