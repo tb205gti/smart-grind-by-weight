@@ -39,6 +39,9 @@
 #define HW_LOADCELL_SAMPLE_RATE_SPS 10                                         // Current sample rate setting
 #define HW_LOADCELL_SAMPLE_INTERVAL_MS (1000 / HW_LOADCELL_SAMPLE_RATE_SPS)   // Calculated sample interval
 
+// Calibration validation
+#define HW_LOADCELL_CAL_MIN_ADC_VALUE 1000                                    // Minimum ADC value to confirm weight placed on scale
+
 //------------------------------------------------------------------------------
 // DISPLAY SPECIFICATIONS  
 //------------------------------------------------------------------------------

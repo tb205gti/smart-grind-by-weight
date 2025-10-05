@@ -67,6 +67,13 @@ void CalibrationUIController::update() {
     } else {
         int32_t raw_reading = ui_manager_->get_hardware_manager()->get_weight_sensor()->get_raw_adc_instant();
         ui_manager_->calibration_screen.update_current_weight(static_cast<float>(raw_reading));
+
+        // In weight step, verify user has placed weight on scale
+        if (current_step == CAL_STEP_WEIGHT) {
+            int32_t adc_delta = abs(raw_reading - baseline_adc_value_);
+            bool weight_detected = adc_delta >= HW_LOADCELL_CAL_MIN_ADC_VALUE;
+            ui_manager_->calibration_screen.set_ok_button_enabled(weight_detected);
+        }
     }
 }
 
@@ -77,6 +84,8 @@ void CalibrationUIController::handle_ok() {
     switch (step) {
         case CAL_STEP_EMPTY:
             UIOperations::execute_tare(ui_manager_->get_hardware_manager(), [this]() {
+                // Capture baseline ADC value after taring
+                baseline_adc_value_ = ui_manager_->get_hardware_manager()->get_weight_sensor()->get_raw_adc_instant();
                 ui_manager_->calibration_screen.set_step(CAL_STEP_WEIGHT);
             });
             break;
@@ -104,6 +113,7 @@ void CalibrationUIController::handle_cancel() {
     if (!ui_manager_) return;
 
     reset_noise_check_state();
+    baseline_adc_value_ = 0;
     ui_manager_->set_current_tab(3);
     ui_manager_->switch_to_state(UIState::SETTINGS);
 }
@@ -275,6 +285,7 @@ void CalibrationUIController::complete_calibration() {
     }
 
     reset_noise_check_state();
+    baseline_adc_value_ = 0;
     ui_manager_->calibration_screen.set_step(CAL_STEP_COMPLETE);
 
     if (weight_sensor) {

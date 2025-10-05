@@ -24,6 +24,7 @@ private:
     bool noise_check_active_ = false;
     bool noise_check_passed_ = false;
     bool noise_check_forced_pass_ = false;
+    int32_t baseline_adc_value_ = 0;
 
     void start_noise_check();
     void reset_noise_check_state();

@@ -199,28 +199,35 @@ void WeightSensor::update_temperature_if_available() {
 
 void WeightSensor::tare() {
     LOG_LOADCELL_DEBUG("[DEBUG %lums] BLOCKING_TARE_START: Beginning blocking tare operation using HX711_ADC exact implementation\n", millis());
-    
+
     // Use exact HX711_ADC non-blocking implementation
     tareNoDelay();
-    
+
     // Wait for tare completion with timeout
     unsigned long start_time = millis();
     while (doTare && millis() - start_time < GRIND_TARE_TIMEOUT_MS) {
         // Call update to ensure fresh samples are collected and tare state is updated
         update();
-        
+
         // Use load cell update interval from constants.h
         delay(SYS_TASK_LOADCELL_INTERVAL_MS);
     }
-    
+
     if (doTare) {
         LOG_BLE("ERROR: Blocking tare operation failed or timed out\n");
     } else {
         // Clear buffer after tare completes for clean measurements
         raw_filter.clear_all_samples();
         raw_filter.reset_display_filter();
+
+        // Ensure at least one sample is in the buffer after taring
+        unsigned long sample_start = millis();
+        while (raw_filter.get_sample_count() == 0 && millis() - sample_start < 1000) {
+            update();
+            delay(SYS_TASK_LOADCELL_INTERVAL_MS);
+        }
     }
-    
+
     LOG_LOADCELL_DEBUG("[DEBUG %lums] BLOCKING_TARE_COMPLETE: Tare operation completed\n", millis());
 }
 

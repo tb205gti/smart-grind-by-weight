@@ -120,7 +120,7 @@ void CalibrationScreen::set_step(CalibrationStep step) {
             set_noise_ui_visible(false);
             set_ok_button_text(LV_SYMBOL_OK);
             set_cancel_button_text(LV_SYMBOL_CLOSE);
-            set_ok_button_enabled(true);
+            set_ok_button_enabled(false);  // Hidden until weight is detected
             update_calibration_weight(calibration_weight);
             break;
 
@@ -228,9 +228,9 @@ void CalibrationScreen::set_ok_button_enabled(bool enabled) {
     }
 
     if (enabled) {
-        lv_obj_clear_state(ok_button, LV_STATE_DISABLED);
+        lv_obj_clear_flag(ok_button, LV_OBJ_FLAG_HIDDEN);
     } else {
-        lv_obj_add_state(ok_button, LV_STATE_DISABLED);
+        lv_obj_add_flag(ok_button, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
