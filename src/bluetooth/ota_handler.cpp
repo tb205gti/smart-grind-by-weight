@@ -132,8 +132,8 @@ bool OTAHandler::start_ota(uint32_t size, const String& expected_build_number, b
     
     // Reconfigure task watchdog for OTA process with extended timeout
     // This is a CPU and flash-intensive operation that can starve other tasks
-    LOG_BLE("OTA: Reconfiguring task watchdog timer for OTA process (300s timeout)...\n");
-    LOG_OTA_DEBUG("Configuring watchdog - timeout_ms=300000, cores=0x3\n");
+    LOG_BLE("OTA: Reconfiguring task watchdog timer for OTA process (600s timeout)...\n");
+    LOG_OTA_DEBUG("Configuring watchdog - timeout_ms=600000, cores=0x3\n");
     esp_task_wdt_config_t wdt_config = {
         .timeout_ms = 300000,
         .idle_core_mask = (1 << 0) | (1 << 1), // Watch idle tasks on both cores
