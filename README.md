@@ -69,7 +69,7 @@ flowchart LR
 
 1. **Get the parts** - ESP32-S3 AMOLED display + HX711 + load cell (~€35 total) → See [Parts List](DOC.md#-parts-list)
 2. **3D print the mounting parts** - All STL files included, no supports needed → See [3D Printed Parts](DOC.md#3d-printed-parts)
-3. **Flash firmware & calibrate** - [Web Flasher](https://jaapp.github.io/smart-grind-by-weight) (Chrome/Edge desktop + Android only) or command line
+3. **Flash firmware & calibrate** - [Web Flasher](https://tb205gti.github.io/smart-grind-by-weight) (Chrome/Edge desktop + Android only) or command line
 4. **Follow the assembly video** - [Complete Eureka build process](https://youtu.be/-kfKjiwJsGM)
 
 **Ready to build?** → See **[DOC.md](DOC.md)** for complete build instructions, parts list, and usage guide.
@@ -123,4 +123,4 @@ In this project, that's most obvious when at state management - it's a bit clutt
 
 **Having issues?** → See **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** for common problems and solutions.
 
-**Changelog & Updates** → See **[Releases](https://github.com/jaapp/smart-grind-by-weight/releases)** for version history and updates.
+**Changelog & Updates** → See **[Releases](https://github.com/tb205gti/smart-grind-by-weight/releases)** for version history and updates.
