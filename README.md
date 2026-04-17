@@ -67,15 +67,9 @@ flowchart LR
 
 ### For Users - Using Pre-built Firmware
 
-<<<<<<< HEAD
-1. **Get the parts** - ESP32-S3 AMOLED display + HX711 + load cell (~€35 total) → See [Parts List](docs/DOC.md#-parts-list)
-2. **3D print the mounting parts** - All STL files included, no supports needed → See [3D Printed Parts](docs/DOC.md#3d-printed-parts) | [Community Designs](docs/3D_PRINTS.md)
-3. **Flash firmware & calibrate** - [Web Flasher](https://jaapp.github.io/smart-grind-by-weight) (Chrome/Edge desktop + Android only) or command line
-=======
 1. **Get the parts** - ESP32-S3 AMOLED display + HX711 + load cell (~€35 total) → See [Parts List](DOC.md#-parts-list)
 2. **3D print the mounting parts** - All STL files included, no supports needed → See [3D Printed Parts](DOC.md#3d-printed-parts)
 3. **Flash firmware & calibrate** - [Web Flasher](https://tb205gti.github.io/smart-grind-by-weight) (Chrome/Edge desktop + Android only) or command line
->>>>>>> 3865894 (Update links in README for new repository owner)
 4. **Follow the assembly video** - [Complete Eureka build process](https://youtu.be/-kfKjiwJsGM)
 
 **Ready to build?** → See **[DOC.md](docs/DOC.md)** for complete build instructions, parts list, and usage guide.
