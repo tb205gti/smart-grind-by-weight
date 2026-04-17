@@ -4,9 +4,9 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'tools/web-flasher/**'  # Deploy when web-flasher files change (after firmware commit)
+      - 'tools/web-flasher/**'
   release:
-    types: [ unpublished, deleted ]
+    types: [ published, unpublished, deleted ]
   workflow_dispatch:
 
 permissions:
@@ -67,26 +67,9 @@ jobs:
           if True:
               import json
               import os
-              import time
-              import urllib.request
 
               firmware_root = "tools/web-flasher/firmware"
               entries = []
-
-              def wait_for(url, retries=30, delay=30):
-                  for attempt in range(retries):
-                      try:
-                          with urllib.request.urlopen(url) as response:
-                              if response.status == 200:
-                                  print(f"  [OK] {url} (attempt {attempt + 1})")
-                                  return True
-                      except Exception:
-                          print(f"  [WAIT] {url} (attempt {attempt + 1})")
-                      time.sleep(delay)
-                  total = retries * delay
-                  minutes = total // 60
-                  print(f"  [FAIL] {url} after {retries} attempts (~{minutes}m)")
-                  return False
 
               for tag in sorted(os.listdir(firmware_root), reverse=True):
                   tag_path = os.path.join(firmware_root, tag)
@@ -101,16 +84,11 @@ jobs:
                   ota_abs = os.path.join(tag_path, f"{base}-web-ota.bin")
 
                   if not (os.path.isfile(manifest_abs) and os.path.isfile(ota_abs)):
+                      print(f"Skipping {tag} - missing manifest or ota bin")
                       continue
 
-                  prerelease = any(key in tag for key in ("-rc", "-beta", "-alpha"))
+                  prerelease = any(key in tag for key in ("-rc", "-beta", "-alpha", "_beta", "_rc", "_alpha"))
                   version = tag.lstrip('v')
-
-                  manifest_url = f"https://tb205gti.github.io/smart-grind-by-weight/{manifest_rel}"
-                  ota_url = f"https://tb205gti.github.io/smart-grind-by-weight/{ota_rel}"
-
-                  if not wait_for(manifest_url) or not wait_for(ota_url):
-                      continue
 
                   entries.append({
                       "tag": tag,
@@ -120,11 +98,14 @@ jobs:
                       "manifest": manifest_rel,
                       "ota": ota_rel,
                   })
+                  print(f"Added {tag} (prerelease={prerelease})")
 
               index_path = os.path.join(firmware_root, "index.json")
               with open(index_path, "w", encoding="utf-8") as handle:
                   json.dump(entries, handle, indent=2)
                   handle.write("\n")
+
+              print(f"index.json written with {len(entries)} entries")
           PY
         
       - name: Setup Pages
