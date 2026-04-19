@@ -40,15 +40,15 @@
 //------------------------------------------------------------------------------
 // SCALE CALIBRATION
 //------------------------------------------------------------------------------
-#define USER_CALIBRATION_REFERENCE_WEIGHT_G 100.0f                             // Default reference weight for calibration
+#define USER_CALIBRATION_REFERENCE_WEIGHT_G 45.0f                              // Default reference weight for calibration
 #define USER_DEFAULT_CALIBRATION_FACTOR -7050.0f                               // Default load cell calibration factor
 
 //------------------------------------------------------------------------------
 // SCREEN AUTO-DIMMING
 //------------------------------------------------------------------------------
-#define USER_SCREEN_AUTO_DIM_TIMEOUT_MS 300000                                 // Time before screen dims due to inactivity
-#define USER_SCREEN_BRIGHTNESS_NORMAL 1.0f                                     // Normal screen brightness
-#define USER_SCREEN_BRIGHTNESS_DIMMED 0.35f                                    // Dimmed screen brightness
+#define USER_SCREEN_AUTO_DIM_TIMEOUT_MS 30000                                  // Time before screen dims due to inactivity
+#define USER_SCREEN_BRIGHTNESS_NORMAL 0.75f                                     // Normal screen brightness
+#define USER_SCREEN_BRIGHTNESS_DIMMED 0.20f                                    // Dimmed screen brightness
 #define USER_WEIGHT_ACTIVITY_THRESHOLD_G 1.0f                                  // Weight change threshold for screen timeout reset (grams)
 
 //------------------------------------------------------------------------------
