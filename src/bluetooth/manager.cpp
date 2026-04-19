@@ -307,11 +307,6 @@ void BluetoothManager::disable() {
         image_handler.abort_upload();
     }
 
-    // Set flags before deinit so that callbacks fired during teardown
-    // (e.g. onDisconnect → start_advertising) see BLE as already disabled.
-    ble_enabled = false;
-    device_connected = false;
-
     stop_advertising();
     delay(BLE_SHUTDOWN_ADVERTISING_DELAY_MS);
     
@@ -319,6 +314,8 @@ void BluetoothManager::disable() {
     BLEDevice::deinit(false);
     delay(BLE_SHUTDOWN_DEINIT_DELAY_MS);
     
+    ble_enabled = false;
+    device_connected = false;
     ble_server = nullptr;
     ota_service = nullptr;
     data_service = nullptr;
@@ -1156,16 +1153,15 @@ void BluetoothManager::generate_diagnostic_report() {
     char buf[512];
 
     // Helper lambda to send chunk and flush in flow-controlled slices
-    auto send_chunk = [this](const char* chunk) -> bool{
-        if (!debug_tx_characteristic || !chunk || !device_connected) return false;
+    auto send_chunk = [this](const char* chunk) {
+        if (!debug_tx_characteristic || !chunk) return;
         size_t len = strlen(chunk);
-        if (len == 0) return true;
+        if (len == 0) return;
 
         const TickType_t chunk_delay = pdMS_TO_TICKS(BLE_DEBUG_CHUNK_DELAY_MS);
 
         size_t offset = 0;
         while (offset < len) {
-            if (!device_connected) return false;
             size_t part_len = std::min(static_cast<size_t>(BLE_DEBUG_MAX_CHUNK_BYTES), len - offset);
             LOG_BLE("TX: %zu bytes\n", part_len);
             debug_tx_characteristic->setValue(reinterpret_cast<const uint8_t*>(chunk + offset), part_len);
@@ -1173,7 +1169,6 @@ void BluetoothManager::generate_diagnostic_report() {
             vTaskDelay(chunk_delay); // Give BLE stack time to drain queue
             offset += part_len;
         }
-	return true;
     };
 
     // Section 1: Header & Firmware Info
@@ -1713,8 +1708,8 @@ void BluetoothManager::generate_diagnostic_report() {
                                         // Calculate event yield (delta)
                                         float event_yield = event.end_weight - event.start_weight;
 
-                                        // Build base event string (static to avoid stack pressure in BLE task)
-                                        static char base_str[256];
+                                        // Build base event string
+                                        char base_str[256];
                                         if (event.pulse_attempt_number > 0) {
                                             snprintf(base_str, sizeof(base_str),
                                                 "    [%lums] %s (pulse #%u): %.2fg -> %.2fg (%+.2fg) (%.1fms pulse)",
@@ -1738,9 +1733,8 @@ void BluetoothManager::generate_diagnostic_report() {
                                             );
                                         }
 
-					// Build phase-specific metrics suffix (static to avoid stack pressure in BLE task)
-                                        static char metrics_str[256] = "";
-					metrics_str[0] = '\0';
+                                        // Build phase-specific metrics suffix
+                                        char metrics_str[256] = "";
 
                                         switch (event.phase_id) {
                                             case 5: // PREDICTIVE
