@@ -129,6 +129,11 @@ void setup() {
     
     LOG_BLE("✅ Task module dependencies initialized\n");
 
+    // Enable BLE by default during bootup with 2-minute timeout
+    // (Previously disabled by default for security, now enabled for user convenience)
+    LOG_BLE("Finally enabling BluetoothManager");
+    bluetooth_manager.enable_during_bootup();
+
     // Initialize TaskManager with hardware and system interfaces
     LOG_BLE("[STARTUP] Initializing FreeRTOS Task Architecture...\n");
     bool task_init_success = task_manager.init(&hardware_manager, &state_machine, &profile_controller, 
@@ -147,11 +152,6 @@ void setup() {
     file_io_task.init(task_manager.get_file_io_queue());
     
     LOG_BLE("✅ All task modules initialized\n");
-
-        // Enable BLE by default during bootup with 2-minute timeout
-    // (Previously disabled by default for security, now enabled for user convenience)
-    LOG_BLE("Finally enabling BluetoothManager");
-    bluetooth_manager.enable_during_bootup();
 }
 
 void loop() {

@@ -121,25 +121,18 @@ void BluetoothManager::enable(unsigned long timeout_ms) {
     last_disconnect_time = enable_time; // Start disconnected timeout from enable time
     
     // Initialize BLE with delays for power stability
-    log("Initializing BLEDevice..");
     BLEDevice::init(BLE_DEVICE_NAME);
     
     // Request a larger MTU to improve throughput when the client supports it.
     // Some platforms (e.g., macOS/iOS) may ignore this request and keep a lower MTU.
     // That's fine — we also keep chunk sizes small and paced below.
-    log("BLEDevice.. set MTU");
     BLEDevice::setMTU(517);
     delay(BLE_INIT_STACK_DELAY_MS);
     
-    log("BLEDevice.. createServer");
     ble_server = BLEDevice::createServer();
     delay(BLE_INIT_SERVER_DELAY_MS);
-    log("BLEDevice.. set Callbacks");
     ble_server->setCallbacks(this);
     
-
-    log("BLEDevice.. Creating services");
-    delay(10);
     // Create OTA service
     ota_service = ble_server->createService(BLEUUID(BLE_OTA_SERVICE_UUID), 12);
     delay(BLE_INIT_SERVICE_DELAY_MS);

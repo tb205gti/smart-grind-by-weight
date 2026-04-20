@@ -119,6 +119,11 @@ void TaskManager::cleanup_queues() {
 bool TaskManager::create_all_tasks() {
     // Create tasks in order of priority (highest to lowest)
     
+    if (!create_ui_render_task()) {
+        LOG_BLE("ERROR: Failed to create UI render task\n");
+        return false;
+    }
+
     if (!create_weight_sampling_task()) {
         LOG_BLE("ERROR: Failed to create weight sampling task\n");
         return false;
@@ -128,12 +133,6 @@ bool TaskManager::create_all_tasks() {
         LOG_BLE("ERROR: Failed to create grind control task\n");
         return false;
     }
-    
-    if (!create_ui_render_task()) {
-        LOG_BLE("ERROR: Failed to create UI render task\n");
-        return false;
-    }
-    
     
     if (!create_bluetooth_task()) {
         LOG_BLE("ERROR: Failed to create bluetooth task\n");
