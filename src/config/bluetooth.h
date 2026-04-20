@@ -72,13 +72,14 @@
 //------------------------------------------------------------------------------
 // BLE INITIALIZATION TIMING
 //------------------------------------------------------------------------------
-// Delays for stable BLE stack initialization
-#define BLE_INIT_STACK_DELAY_MS 100                                            // Delay after BLE stack initialization
-#define BLE_INIT_SERVER_DELAY_MS 50                                            // Delay after server creation
-#define BLE_INIT_SERVICE_DELAY_MS 25                                           // Delay after service creation
-#define BLE_INIT_CHARACTERISTIC_DELAY_MS 25                                    // Delay after each characteristic setup
-#define BLE_INIT_START_DELAY_MS 50                                             // Delay after service start
-#define BLE_INIT_ADVERTISING_DELAY_MS 25                                       // Delay after advertising setup
+// NimBLE service/characteristic/start operations are synchronous - no settling
+// time is needed between them. The stack init delay is kept small for safety.
+#define BLE_INIT_STACK_DELAY_MS 10                                             // Delay after BLE stack initialization
+#define BLE_INIT_SERVER_DELAY_MS 0                                             // Delay after server creation
+#define BLE_INIT_SERVICE_DELAY_MS 0                                            // Delay after service creation
+#define BLE_INIT_CHARACTERISTIC_DELAY_MS 0                                     // Delay after each characteristic setup
+#define BLE_INIT_START_DELAY_MS 0                                              // Delay after service start
+#define BLE_INIT_ADVERTISING_DELAY_MS 0                                        // Delay after advertising setup
 
 //------------------------------------------------------------------------------
 // BLE SHUTDOWN TIMING
