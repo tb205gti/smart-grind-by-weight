@@ -120,38 +120,37 @@ void setup() {
     esp_ota_mark_app_valid_cancel_rollback();
     LOG_BLE("[STARTUP] Firmware marked as valid (rollback cancelled)\n");
 
+    // Enable BLE by default during bootup with 2-minute timeout
+    // (Previously disabled by default for security, now enabled for user convenience)
+    bluetooth_manager.enable_during_bootup();
+    
     // Initialize individual task modules BEFORE TaskManager creates FreeRTOS tasks
     // This ensures all task dependencies are ready before tasks start running
     LOG_BLE("[STARTUP] Initializing task module dependencies...\n");
     weight_sampling_task.init(hardware_manager.get_load_cell(), &grind_logger);
-    grind_control_task.init(&grind_controller, hardware_manager.get_load_cell(),
+    grind_control_task.init(&grind_controller, hardware_manager.get_load_cell(), 
                            hardware_manager.get_grinder(), &grind_logger);
-
+    
     LOG_BLE("✅ Task module dependencies initialized\n");
-
+    
     // Initialize TaskManager with hardware and system interfaces
     LOG_BLE("[STARTUP] Initializing FreeRTOS Task Architecture...\n");
-    bool task_init_success = task_manager.init(&hardware_manager, &state_machine, &profile_controller,
+    bool task_init_success = task_manager.init(&hardware_manager, &state_machine, &profile_controller, 
                                               &grind_controller, &bluetooth_manager, &ui_manager);
-
+    
     if (!task_init_success) {
         LOG_BLE("ERROR: Failed to initialize TaskManager - system cannot start\n");
         while (true) {
             delay(1000); // Halt system if task initialization fails
         }
     }
-
+    
     LOG_BLE("✅ TaskManager initialized successfully\n");
-
+    
     // Initialize remaining task modules that depend on TaskManager queues
     file_io_task.init(task_manager.get_file_io_queue());
-
+    
     LOG_BLE("✅ All task modules initialized\n");
-
-    // Enable BLE after FreeRTOS tasks are running so the UI render task (priority 2)
-    // can preempt the loop task (priority 1) during BLE init delays and render the
-    // first frame without waiting for BLE stack setup to complete.
-    bluetooth_manager.enable_during_bootup();
 }
 
 void loop() {
