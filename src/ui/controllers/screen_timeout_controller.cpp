@@ -31,6 +31,23 @@ void ScreenTimeoutController::update() {
         return;
     }
 
+    bool ota_active = ui_manager_->bluetooth_manager &&
+                      ui_manager_->bluetooth_manager->is_updating();
+    if (ota_active) {
+        if (screensaver_controller_ && screensaver_controller_->is_visible()) {
+            screensaver_controller_->hide();
+        }
+        if (screen_dimmed_) {
+            float normal = USER_SCREEN_BRIGHTNESS_NORMAL;
+            if (ui_manager_->menu_controller_) {
+                normal = ui_manager_->menu_controller_->get_normal_brightness();
+            }
+            display->set_brightness(normal);
+            screen_dimmed_ = false;
+        }
+        return;
+    }
+
     if (ui_manager_->state_machine && ui_manager_->state_machine->is_state(UIState::GRINDING)) {
         if (screen_dimmed_) {
             if (screensaver_controller_ && screensaver_controller_->is_visible()) {
