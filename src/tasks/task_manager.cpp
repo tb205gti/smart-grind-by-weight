@@ -2,6 +2,7 @@
 #include "weight_sampling_task.h"
 #include "grind_control_task.h"
 #include "file_io_task.h"
+#include "wifi_mqtt_task.h"
 #include "../hardware/hardware_manager.h"
 #include "../system/state_machine.h"
 #include "../controllers/profile_controller.h"
@@ -98,6 +99,13 @@ bool TaskManager::create_inter_task_queues() {
         LOG_BLE("ERROR: Failed to create file_io_queue\n");
         return false;
     }
+
+    // MQTT publish queue (grind session snapshots)
+    task_queues.mqtt_queue = xQueueCreate(WIFI_MQTT_QUEUE_DEPTH, sizeof(MqttPublishRequest));
+    if (!task_queues.mqtt_queue) {
+        LOG_BLE("ERROR: Failed to create mqtt_queue\n");
+        return false;
+    }
     
     LOG_BLE("TaskManager: Inter-task communication queues created successfully\n");
     return true;
@@ -113,6 +121,11 @@ void TaskManager::cleanup_queues() {
     if (task_queues.file_io_queue) {
         vQueueDelete(task_queues.file_io_queue);
         task_queues.file_io_queue = nullptr;
+    }
+
+    if (task_queues.mqtt_queue) {
+        vQueueDelete(task_queues.mqtt_queue);
+        task_queues.mqtt_queue = nullptr;
     }
 }
 
@@ -144,7 +157,12 @@ bool TaskManager::create_all_tasks() {
         LOG_BLE("ERROR: Failed to create file I/O task\n");
         return false;
     }
-    
+
+    if (!create_wifi_mqtt_task()) {
+        LOG_BLE("ERROR: Failed to create WiFi MQTT task\n");
+        return false;
+    }
+
     return true;
 }
 
@@ -249,8 +267,31 @@ bool TaskManager::create_file_io_task() {
         return false;
     }
     
-    LOG_BLE("✅ File I/O Task created (Core 1, Priority %d, %dHz)\n", 
+    LOG_BLE("✅ File I/O Task created (Core 1, Priority %d, %dHz)\n",
             SYS_TASK_PRIORITY_FILE_IO, 1000 / SYS_TASK_FILE_IO_INTERVAL_MS);
+    return true;
+}
+
+bool TaskManager::create_wifi_mqtt_task() {
+    // Init wifi_mqtt_task with the mqtt queue before creating the FreeRTOS task
+    wifi_mqtt_task.init(task_queues.mqtt_queue);
+
+    BaseType_t result = xTaskCreatePinnedToCore(
+        wifi_mqtt_task_wrapper,
+        "WiFiMQTT",
+        WIFI_MQTT_TASK_STACK_SIZE,
+        nullptr,
+        WIFI_MQTT_TASK_PRIORITY,
+        &task_handles.wifi_mqtt_task,
+        1  // Pin to Core 1
+    );
+
+    if (result != pdPASS) {
+        LOG_BLE("ERROR: Failed to create WiFiMQTT task\n");
+        return false;
+    }
+
+    LOG_BLE("✅ WiFiMQTT Task created (Core 1, Priority %d)\n", WIFI_MQTT_TASK_PRIORITY);
     return true;
 }
 
@@ -320,7 +361,12 @@ void TaskManager::delete_all_tasks() {
         vTaskDelete(task_handles.file_io_task);
         task_handles.file_io_task = nullptr;
     }
-    
+
+    if (task_handles.wifi_mqtt_task) {
+        vTaskDelete(task_handles.wifi_mqtt_task);
+        task_handles.wifi_mqtt_task = nullptr;
+    }
+
     tasks_initialized = false;
 }
 
@@ -397,6 +443,14 @@ void TaskManager::file_io_task_wrapper(void* parameter) {
     if (instance) {
         instance->file_io_task_impl();
         instance->task_handles.file_io_task = nullptr;
+    }
+    vTaskDelete(nullptr);
+}
+
+void TaskManager::wifi_mqtt_task_wrapper(void* parameter) {
+    if (instance) {
+        instance->wifi_mqtt_task_impl();
+        instance->task_handles.wifi_mqtt_task = nullptr;
     }
     vTaskDelete(nullptr);
 }
@@ -483,6 +537,11 @@ void TaskManager::bluetooth_task_impl() {
 void TaskManager::file_io_task_impl() {
     // Delegate to dedicated FileIOTask implementation
     file_io_task.task_impl();
+}
+
+void TaskManager::wifi_mqtt_task_impl() {
+    // Delegate to dedicated WiFiMqttTask implementation
+    wifi_mqtt_task.task_impl();
 }
 
 void TaskManager::record_task_timing(int task_index, uint32_t start_time, uint32_t end_time) {

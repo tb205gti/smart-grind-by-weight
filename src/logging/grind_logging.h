@@ -198,6 +198,12 @@ public:
     // Data access
     uint32_t get_total_flash_sessions() const;
     bool is_logging_active() const { return logging_active; }
+
+    // Completed session snapshot — valid between end_grind_session() and next start_grind_session()
+    bool has_last_completed_session_data() const { return _has_last_completed_session; }
+    const GrindSession& get_last_completed_session() const { return _last_completed_session; }
+    const GrindEvent* get_last_completed_events() const { return _last_completed_events; }
+    uint16_t get_last_completed_event_count() const { return _last_completed_event_count; }
     uint32_t get_session_storage_version() const { return session_storage_version; }
     
     // Debug output helpers - conditionally compiled based on debug flags (moved to public for BLE access)
@@ -232,7 +238,13 @@ private:
     void mark_session_storage_dirty(); // Bump version when session files change
     
     uint32_t session_storage_version;
-    
+
+    // Snapshot of the most recently completed (non-cancelled) session for MQTT publishing
+    GrindSession _last_completed_session;
+    GrindEvent   _last_completed_events[MAX_EVENTS_PER_GRIND];
+    uint16_t     _last_completed_event_count;
+    bool         _has_last_completed_session;
+
 };
 
 // Global logger instance

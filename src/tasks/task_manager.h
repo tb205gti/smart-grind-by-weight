@@ -20,12 +20,14 @@ struct TaskHandles {
     TaskHandle_t ui_render_task;
     TaskHandle_t bluetooth_task;
     TaskHandle_t file_io_task;
+    TaskHandle_t wifi_mqtt_task;
 };
 
 // Inter-task communication queues
 struct TaskQueues {
     QueueHandle_t ui_to_grind_queue;        // UI events → Grind Controller
     QueueHandle_t file_io_queue;            // Any task → File I/O
+    QueueHandle_t mqtt_queue;               // FileIO → WiFiMqttTask (grind session publish requests)
 };
 
 // Task timing metrics for monitoring
@@ -72,7 +74,7 @@ private:
     UIManager* ui_manager;
     
     // Task monitoring
-    TaskMetrics task_metrics[5]; // One for each task
+    TaskMetrics task_metrics[6]; // One for each task
     bool tasks_initialized;
     bool ota_suspended;
     
@@ -96,6 +98,7 @@ public:
     // Queue access
     QueueHandle_t get_ui_to_grind_queue() const { return task_queues.ui_to_grind_queue; }
     QueueHandle_t get_file_io_queue() const { return task_queues.file_io_queue; }
+    QueueHandle_t get_mqtt_queue() const { return task_queues.mqtt_queue; }
     
     // Task monitoring
     bool are_tasks_healthy() const;
@@ -107,6 +110,7 @@ public:
     static void ui_render_task_wrapper(void* parameter);
     static void bluetooth_task_wrapper(void* parameter);
     static void file_io_task_wrapper(void* parameter);
+    static void wifi_mqtt_task_wrapper(void* parameter);
     
 private:
     // Task creation helpers
@@ -115,6 +119,7 @@ private:
     bool create_ui_render_task();
     bool create_bluetooth_task();
     bool create_file_io_task();
+    bool create_wifi_mqtt_task();
     
     // Queue creation
     bool create_inter_task_queues();
@@ -126,6 +131,7 @@ private:
     void ui_render_task_impl();
     void bluetooth_task_impl();
     void file_io_task_impl();
+    void wifi_mqtt_task_impl();
     
     // Performance monitoring
     void record_task_timing(int task_index, uint32_t start_time, uint32_t end_time);

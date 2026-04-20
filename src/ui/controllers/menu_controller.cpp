@@ -8,6 +8,8 @@
 #include <nvs_flash.h>
 #include <cstdint>
 #include "../../config/constants.h"
+#include "../../config/wifi_mqtt.h"
+#include "../../system/wifi_mqtt_manager.h"
 #include "../../controllers/grind_controller.h"
 #include "../../controllers/grind_mode_traits.h"
 #include "../../logging/grind_logging.h"
@@ -62,6 +64,7 @@ void MenuUIController::register_events() {
 
     EventBridgeLVGL::register_handler(ET::SCREENSAVER_STARTUP_TOGGLE, [this](lv_event_t*) { handle_screensaver_startup_toggle(); });
     EventBridgeLVGL::register_handler(ET::SCREENSAVER_SLEEP_TOGGLE, [this](lv_event_t*) { handle_screensaver_sleep_toggle(); });
+    EventBridgeLVGL::register_handler(ET::WIFI_MQTT_TOGGLE, [this](lv_event_t*) { handle_wifi_mqtt_toggle(); });
 
     // Note: Event registration for menu widgets is done in the page creation functions
     // (menu_screen.cpp) because the menu is created lazily and destroyed on hide.
@@ -586,7 +589,19 @@ void MenuUIController::handle_screensaver_sleep_toggle() {
     prefs.begin("screensaver", false);
     prefs.putBool("sleep", enabled);
     prefs.end();
+}
 
+void MenuUIController::handle_wifi_mqtt_toggle() {
+    if (!ui_manager_) return;
+
+    auto* toggle = ui_manager_->menu_screen.get_wifi_mqtt_toggle();
+    if (!toggle) return;
+
+    bool enabled = lv_obj_has_state(toggle, LV_STATE_CHECKED);
+    wifi_mqtt_manager.set_enabled(enabled);
+    ui_manager_->menu_screen.update_wifi_mqtt_toggle();
+
+    LOG_BLE("WiFi & MQTT: %s\n", enabled ? "enabled" : "disabled");
 }
 
 void MenuUIController::perform_factory_reset() {

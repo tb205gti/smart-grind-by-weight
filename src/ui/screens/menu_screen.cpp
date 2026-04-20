@@ -4,8 +4,10 @@
 #include <LittleFS.h>
 #include <Preferences.h>
 #include "../../config/constants.h"
+#include "../../config/wifi_mqtt.h"
 #include "../../logging/grind_logging.h"
 #include "../../system/statistics_manager.h"
+#include "../../system/wifi_mqtt_manager.h"
 #include "../../hardware/hardware_manager.h"
 #include "grinding_screen.h"
 #include "../event_bridge_lvgl.h"
@@ -48,6 +50,9 @@ void MenuScreen::create(BluetoothManager* bluetooth, GrindController* grind_ctrl
     grinder_purge_amount_label = nullptr;
     grind_freshness_hours_slider = nullptr;
     grind_freshness_hours_label = nullptr;
+    wifi_mqtt_page = nullptr;
+    wifi_mqtt_toggle = nullptr;
+    wifi_mqtt_status_label = nullptr;
     lv_obj_add_flag(screen, LV_OBJ_FLAG_HIDDEN);
 
     // Create menu UI immediately at boot for instant access
@@ -146,6 +151,9 @@ void MenuScreen::create_menu_ui() {
     diagnostics_page = lv_menu_page_create(menu, "Diagnostics");
     create_diagnostics_page(diagnostics_page);
 
+    wifi_mqtt_page = lv_menu_page_create(menu, "WiFi & MQTT");
+    create_wifi_mqtt_page(wifi_mqtt_page);
+
     // Create menu items grouped with separators
     create_separator(main_page, "Tools");
     scale_item = create_menu_item(main_page, "Scale");
@@ -183,6 +191,9 @@ void MenuScreen::create_menu_ui() {
 
     lv_obj_t* grind_mode_item = create_menu_item(main_page, "Grind Settings");
     lv_menu_set_load_page_event(menu, grind_mode_item, grind_mode_page);
+
+    lv_obj_t* wifi_mqtt_item = create_menu_item(main_page, "WiFi & MQTT");
+    lv_menu_set_load_page_event(menu, wifi_mqtt_item, wifi_mqtt_page);
 
     create_separator(main_page, "Info");
     lv_obj_t* diagnostics_item = create_menu_item(main_page, "Diagnostics");
@@ -1260,4 +1271,64 @@ void MenuScreen::update_grind_mode_toggles() {
     }
 
     update_grind_freshness_hours_label(freshness_hours);
+}
+
+void MenuScreen::create_wifi_mqtt_page(lv_obj_t* parent) {
+    lv_obj_set_layout(parent, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(parent, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+    lv_obj_set_scroll_dir(parent, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(parent, LV_SCROLLBAR_MODE_AUTO);
+
+    create_description_label(parent, "Publish grind data to an MQTT broker after each grind. Configure via BLE using a JSON payload.");
+
+    create_toggle_row(parent, "Enabled", &wifi_mqtt_toggle);
+
+    wifi_mqtt_status_label = lv_label_create(parent);
+    lv_label_set_text(wifi_mqtt_status_label, "Configure via BLE");
+    lv_obj_set_style_text_font(wifi_mqtt_status_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(wifi_mqtt_status_label, lv_color_hex(THEME_COLOR_TEXT_SECONDARY), 0);
+    lv_obj_clear_flag(wifi_mqtt_status_label, LV_OBJ_FLAG_SCROLLABLE);
+
+    create_separator(parent, "BLE Config Payload");
+    create_description_label(parent,
+        "Write JSON to BLE WiFi config characteristic:\n"
+        "{\"ssid\":\"Net\",\"wifi_pass\":\"pw\","
+        "\"broker\":\"192.168.1.x\",\"port\":1883,"
+        "\"mqtt_user\":\"u\",\"mqtt_pass\":\"p\","
+        "\"topic\":\"grinder\",\"tls\":false}");
+
+    using ET = EventBridgeLVGL::EventType;
+    if (wifi_mqtt_toggle) {
+        lv_obj_add_event_cb(wifi_mqtt_toggle, EventBridgeLVGL::dispatch_event, LV_EVENT_VALUE_CHANGED,
+                           reinterpret_cast<void*>(static_cast<intptr_t>(ET::WIFI_MQTT_TOGGLE)));
+    }
+
+    // Initialise toggle state from NVS
+    update_wifi_mqtt_toggle();
+}
+
+void MenuScreen::update_wifi_mqtt_toggle() {
+    bool enabled = wifi_mqtt_manager.is_enabled();
+    if (wifi_mqtt_toggle) {
+        if (enabled) {
+            lv_obj_add_state(wifi_mqtt_toggle, LV_STATE_CHECKED);
+        } else {
+            lv_obj_clear_state(wifi_mqtt_toggle, LV_STATE_CHECKED);
+        }
+    }
+
+    if (wifi_mqtt_status_label) {
+        WiFiMqttConfig cfg = wifi_mqtt_manager.load_config();
+        if (enabled && cfg.broker[0]) {
+            char buf[80];
+            snprintf(buf, sizeof(buf), "%s:%u  topic: %s", cfg.broker, cfg.port, cfg.topic);
+            lv_label_set_text(wifi_mqtt_status_label, buf);
+        } else if (enabled) {
+            lv_label_set_text(wifi_mqtt_status_label, "Enabled — no broker configured");
+        } else {
+            lv_label_set_text(wifi_mqtt_status_label, "Configure via BLE");
+        }
+    }
 }

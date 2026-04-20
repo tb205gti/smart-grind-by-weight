@@ -10,6 +10,7 @@
 #include <Preferences.h>
 
 #include "../config/constants.h"
+#include "../config/wifi_mqtt.h"
 #include "ota_handler.h"
 #include "data_stream.h"
 #include "image_upload_handler.h"
@@ -61,6 +62,7 @@ private:
     BLEService* data_service;
     BLEService* debug_service;
     BLEService* sysinfo_service;
+    BLEService* wifi_config_service;
     
     // OTA characteristics
     BLECharacteristic* ota_data_characteristic;
@@ -83,6 +85,10 @@ private:
     BLECharacteristic* sysinfo_hardware_characteristic;
     BLECharacteristic* sysinfo_sessions_characteristic;
     BLECharacteristic* sysinfo_diagnostics_characteristic;
+
+    // WiFi config characteristics
+    BLECharacteristic* wifi_config_write_characteristic;
+    BLECharacteristic* wifi_config_status_characteristic;
     
     // Connection state
     bool device_connected;
@@ -141,6 +147,7 @@ private:
     void process_sessions_info_updates();
     void mark_sessions_info_dirty();
     void generate_diagnostic_report();
+    void handle_wifi_config_write(BLECharacteristic* characteristic);
     
 public:
     BluetoothManager();

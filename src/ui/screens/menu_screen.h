@@ -20,6 +20,7 @@ private:
     lv_obj_t* stats_page;
     lv_obj_t* diagnostics_page;
     lv_obj_t* scale_page;
+    lv_obj_t* wifi_mqtt_page;
 
     // Info tab elements
     lv_obj_t* info_label;
@@ -55,6 +56,10 @@ private:
     lv_obj_t* brightness_screensaver_label;
     lv_obj_t* screensaver_startup_toggle;
     lv_obj_t* screensaver_sleep_toggle;
+
+    // WiFi & MQTT page elements
+    lv_obj_t* wifi_mqtt_toggle;
+    lv_obj_t* wifi_mqtt_status_label;
     lv_obj_t* purge_button;
     lv_obj_t* reset_button;
     
@@ -145,6 +150,9 @@ public:
     lv_obj_t* get_screensaver_sleep_toggle() const { return screensaver_sleep_toggle; }
     void update_screensaver_toggles();
 
+    lv_obj_t* get_wifi_mqtt_toggle() const { return wifi_mqtt_toggle; }
+    void update_wifi_mqtt_toggle();
+
 private:
     void create_menu_ui();
     void create_info_page(lv_obj_t* parent);
@@ -155,6 +163,7 @@ private:
     void create_data_page(lv_obj_t* parent);
     void create_stats_page(lv_obj_t* parent);
     void create_diagnostics_page(lv_obj_t* parent);
+    void create_wifi_mqtt_page(lv_obj_t* parent);
     lv_obj_t* create_separator(lv_obj_t* parent, const char* text = nullptr);
     lv_obj_t* create_menu_item(lv_obj_t* parent, const char* text);
     lv_obj_t *create_toggle_row(lv_obj_t *parent, const char *text,lv_obj_t **out_toggle);

@@ -85,6 +85,7 @@ void GrindLogger::start_grind_session(const GrindSessionDescriptor& descriptor, 
         return;
     }
 
+    _has_last_completed_session = false;
     clear_buffers();
     memset(current_session, 0, sizeof(GrindSession));
 
@@ -239,6 +240,17 @@ void GrindLogger::end_grind_session(const char* final_result, float final_weight
                     current_session->error_grams,
                     final_result);
         }
+    }
+
+    // Snapshot completed session data for MQTT publishing before clearing buffers
+    if (!is_cancelled && current_session) {
+        _last_completed_session = *current_session;
+        uint16_t events_to_copy = (event_count < MAX_EVENTS_PER_GRIND) ? event_count : MAX_EVENTS_PER_GRIND;
+        if (event_buffer && events_to_copy > 0) {
+            memcpy(_last_completed_events, event_buffer, events_to_copy * sizeof(GrindEvent));
+        }
+        _last_completed_event_count = events_to_copy;
+        _has_last_completed_session = true;
     }
 
     // Clear buffers to ensure clean state for next session

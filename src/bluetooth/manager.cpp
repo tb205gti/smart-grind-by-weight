@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cstdarg>
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <esp_system.h>
 #include <LittleFS.h>
 #include <nvs_flash.h>
@@ -9,6 +10,7 @@
 #include "../system/performance_monitor.h"
 #include "../system/statistics_manager.h"
 #include "../system/diagnostics_controller.h"
+#include "../system/wifi_mqtt_manager.h"
 #include "../config/constants.h"
 #include "../config/user.h"
 #include "../config/grind_control.h"
@@ -38,6 +40,9 @@ BluetoothManager::BluetoothManager()
     , sysinfo_hardware_characteristic(nullptr)
     , sysinfo_sessions_characteristic(nullptr)
     , sysinfo_diagnostics_characteristic(nullptr)
+    , wifi_config_service(nullptr)
+    , wifi_config_write_characteristic(nullptr)
+    , wifi_config_status_characteristic(nullptr)
     , device_connected(false)
     , ble_enabled(false), debug_stream_active(false)
     , enable_time(0)
@@ -248,6 +253,26 @@ void BluetoothManager::enable(unsigned long timeout_ms) {
     delay(BLE_INIT_START_DELAY_MS);
     
     sysinfo_service->start();
+    delay(BLE_INIT_START_DELAY_MS);
+
+    // Create WiFi config service (write characteristic for JSON config, notify for response)
+    wifi_config_service = ble_server->createService(BLEUUID(BLE_WIFI_CONFIG_SERVICE_UUID), 6);
+    delay(BLE_INIT_SERVICE_DELAY_MS);
+
+    wifi_config_write_characteristic = wifi_config_service->createCharacteristic(
+        BLE_WIFI_CONFIG_WRITE_CHAR_UUID,
+        BLECharacteristic::PROPERTY_WRITE
+    );
+    wifi_config_write_characteristic->setCallbacks(this);
+    delay(BLE_INIT_CHARACTERISTIC_DELAY_MS);
+
+    wifi_config_status_characteristic = wifi_config_service->createCharacteristic(
+        BLE_WIFI_CONFIG_STATUS_CHAR_UUID,
+        BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+    );
+    delay(BLE_INIT_CHARACTERISTIC_DELAY_MS);
+
+    wifi_config_service->start();
     delay(BLE_INIT_START_DELAY_MS);
 
     BLEAdvertising* advertising = BLEDevice::getAdvertising();
@@ -915,6 +940,9 @@ void BluetoothManager::onWrite(BLECharacteristic* characteristic) {
     } else if (characteristic == sysinfo_diagnostics_characteristic) {
         LOG_BLE("  -> QUEUING DIAGNOSTIC REPORT REQUEST\n");
         diagnostic_report_pending = true; // Defer heavy work to bluetooth task context
+    } else if (characteristic == wifi_config_write_characteristic) {
+        LOG_BLE("  -> Handling WiFi config write\n");
+        handle_wifi_config_write(characteristic);
     } else {
         LOG_BLE("  -> UNKNOWN characteristic!\n");
     }
@@ -922,6 +950,44 @@ void BluetoothManager::onWrite(BLECharacteristic* characteristic) {
 
 void BluetoothManager::onRead(BLECharacteristic* characteristic) {
     // Reserved for future use
+}
+
+void BluetoothManager::handle_wifi_config_write(BLECharacteristic* characteristic) {
+    String value = characteristic->getValue();
+    if (value.length() == 0) {
+        return;
+    }
+
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, value.c_str(), value.length());
+
+    auto respond = [&](const char* msg) {
+        if (wifi_config_status_characteristic) {
+            wifi_config_status_characteristic->setValue(msg);
+            wifi_config_status_characteristic->notify();
+        }
+        LOG_BLE("WiFiConfig BLE: %s\n", msg);
+    };
+
+    if (err) {
+        respond("ERR:invalid_json");
+        return;
+    }
+
+    extern WiFiMqttManager wifi_mqtt_manager;
+    WiFiMqttConfig cfg = wifi_mqtt_manager.load_config();
+
+    if (doc["ssid"].is<const char*>())      strncpy(cfg.ssid,      doc["ssid"],      sizeof(cfg.ssid)      - 1);
+    if (doc["wifi_pass"].is<const char*>()) strncpy(cfg.wifi_pass, doc["wifi_pass"], sizeof(cfg.wifi_pass) - 1);
+    if (doc["broker"].is<const char*>())    strncpy(cfg.broker,    doc["broker"],    sizeof(cfg.broker)    - 1);
+    if (doc["mqtt_user"].is<const char*>()) strncpy(cfg.mqtt_user, doc["mqtt_user"], sizeof(cfg.mqtt_user) - 1);
+    if (doc["mqtt_pass"].is<const char*>()) strncpy(cfg.mqtt_pass, doc["mqtt_pass"], sizeof(cfg.mqtt_pass) - 1);
+    if (doc["topic"].is<const char*>())     strncpy(cfg.topic,     doc["topic"],     sizeof(cfg.topic)     - 1);
+    if (doc["port"].is<uint16_t>())         cfg.port = doc["port"];
+    if (doc["tls"].is<bool>())              cfg.tls  = doc["tls"];
+
+    wifi_mqtt_manager.save_config(cfg);
+    respond("OK");
 }
 
 void BluetoothManager::handle_image_control_command(uint8_t command, const String& value) {

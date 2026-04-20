@@ -1,5 +1,8 @@
 #include "file_io_task.h"
+#include "task_manager.h"
+#include "wifi_mqtt_task.h"
 #include "../logging/grind_logging.h"
+#include "../system/wifi_mqtt_manager.h"
 #include "../config/constants.h"
 #include <Arduino.h>
 #include <LittleFS.h>
@@ -222,9 +225,26 @@ void FileIOTask::process_flash_operation(const FlashOpRequest& request) {
             break;
             
         case FlashOpRequest::END_GRIND_SESSION:
-            LOG_BLE("[%lums FLASH_OP] Processing END_GRIND_SESSION: %s, %.2fg, %d pulses\n", 
+            LOG_BLE("[%lums FLASH_OP] Processing END_GRIND_SESSION: %s, %.2fg, %d pulses\n",
                     millis(), request.result_string, request.final_weight, request.pulse_count);
             grind_logger.end_grind_session(request.result_string, request.final_weight, request.pulse_count);
+            // Enqueue MQTT publish if WiFi & MQTT is enabled and a session was saved
+            if (wifi_mqtt_manager.is_enabled() && grind_logger.has_last_completed_session_data()) {
+                QueueHandle_t mqtt_q = task_manager.get_mqtt_queue();
+                if (mqtt_q) {
+                    MqttPublishRequest pub;
+                    pub.session     = grind_logger.get_last_completed_session();
+                    pub.event_count = grind_logger.get_last_completed_event_count();
+                    const GrindEvent* evts = grind_logger.get_last_completed_events();
+                    if (evts && pub.event_count > 0) {
+                        memcpy(pub.events, evts, pub.event_count * sizeof(GrindEvent));
+                    }
+                    if (xQueueSend(mqtt_q, &pub, 0) != pdPASS) {
+                        LOG_BLE("WiFiMQTT: Publish queue full — session %lu dropped\n",
+                                pub.session.session_id);
+                    }
+                }
+            }
             break;
             
         default:
