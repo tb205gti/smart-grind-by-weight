@@ -7,7 +7,7 @@
 #include <Arduino.h>
 #include <BLEDevice.h>
 
-OTAHandler::OTAHandler() 
+OTAHandler::OTAHandler()
     : ota_in_progress(false)
     , patch_size(0)
     , received_size(0)
@@ -15,7 +15,8 @@ OTAHandler::OTAHandler()
     , current_firmware_build_number("")
     , is_full_update(false)
     , power_state(NORMAL_POWER)
-    , normal_cpu_freq_mhz(BLE_NORMAL_CPU_FREQ_MHZ) {
+    , normal_cpu_freq_mhz(BLE_NORMAL_CPU_FREQ_MHZ)
+    , wdt_reconfigured(false) {
 }
 
 OTAHandler::~OTAHandler() {
@@ -140,6 +141,7 @@ bool OTAHandler::start_ota(uint32_t size, const String& expected_build_number, b
         .trigger_panic = true,
     };
     esp_task_wdt_reconfigure(&wdt_config);
+    wdt_reconfigured = true;
     LOG_OTA_DEBUG("Watchdog reconfigured successfully\n");
 
     // Suspend hardware tasks to prevent watchdog timeouts during OTA
@@ -220,6 +222,7 @@ bool OTAHandler::complete_ota() {
     bool success = finalize_update();
     if (success) {
         current_status = BLE_OTA_SUCCESS;
+        wdt_reconfigured = false;
         LOG_OTA_DEBUG("finalize_update() SUCCESS\n");
         LOG_BLE("OTA: Update complete (%lu KB)\n", (unsigned long)received_size / 1024);
         LOG_BLE("OTA: Starting restart sequence...\n");
@@ -252,6 +255,23 @@ bool OTAHandler::complete_ota() {
         LOG_BLE("OTA: Finalization failed\n");
         LOG_OTA_DEBUG("finalize_update() FAILED\n");
 
+        // Re-enable touch driver (was disabled before finalization attempt)
+        LOG_OTA_DEBUG("Re-enabling TouchDriver after failed finalization...\n");
+        extern HardwareManager hardware_manager;
+        hardware_manager.get_display()->get_touch_driver()->enable();
+
+        // Restore watchdog to normal operating timeout
+        if (wdt_reconfigured) {
+            esp_task_wdt_config_t normal_wdt = {
+                .timeout_ms = 5000,
+                .idle_core_mask = (1 << 0) | (1 << 1),
+                .trigger_panic = true,
+            };
+            esp_task_wdt_reconfigure(&normal_wdt);
+            wdt_reconfigured = false;
+            LOG_BLE("OTA: Watchdog restored to normal timeout\n");
+        }
+
         // Resume hardware tasks on failure
         LOG_BLE("OTA: Resuming hardware tasks after failed finalization\n");
         task_manager.resume_hardware_tasks();
@@ -269,6 +289,18 @@ void OTAHandler::abort_ota() {
         received_size = 0;
         patch_size = 0;
         current_status = BLE_OTA_ERROR;
+
+        // Restore watchdog to normal operating timeout
+        if (wdt_reconfigured) {
+            esp_task_wdt_config_t normal_wdt = {
+                .timeout_ms = 5000,
+                .idle_core_mask = (1 << 0) | (1 << 1),
+                .trigger_panic = true,
+            };
+            esp_task_wdt_reconfigure(&normal_wdt);
+            wdt_reconfigured = false;
+            LOG_BLE("OTA: Watchdog restored to normal timeout\n");
+        }
 
         // Resume hardware tasks on abort
         LOG_BLE("OTA: Resuming hardware tasks after abort\n");

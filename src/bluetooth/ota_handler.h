@@ -62,6 +62,9 @@ private:
     // Power management
     BLEPowerState power_state;
     uint32_t normal_cpu_freq_mhz;
+
+    // WDT state tracking
+    bool wdt_reconfigured;
     
     // Delta OTA components
     delta_partition_writer_t patch_writer;

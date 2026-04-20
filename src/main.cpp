@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <LittleFS.h>
 #include <esp_system.h>
+#include <esp_ota_ops.h>
 #include "hardware/hardware_manager.h"
 #include "system/state_machine.h"
 #include "system/statistics_manager.h"
@@ -95,10 +96,14 @@ void setup() {
     
     ui_manager.init(&hardware_manager, &state_machine, &profile_controller, &grind_controller, &bluetooth_manager);
     
-    // Store OTA failure info in ui_manager if needed
+    // Store OTA failure info in ui_manager and refresh the screen so the
+    // expected build/version text is populated (switch_to_state fires during
+    // ui_manager.init() before set_failure_info() has been called, so we
+    // need to call show_failure_screen() again with the data now available).
     if (ota_failed) {
         if (auto* ota = ui_manager.get_ota_data_export_controller()) {
             ota->set_failure_info(failed_ota_build.c_str());
+            ota->show_failure_screen();
         }
     }
     
@@ -109,6 +114,12 @@ void setup() {
         }
     });
     
+    // Mark firmware as valid so the bootloader won't roll back on next crash.
+    // Must be called after core systems are up; safe to call even when rollback
+    // is not enabled (esp_ota_mark_app_valid_cancel_rollback is a no-op in that case).
+    esp_ota_mark_app_valid_cancel_rollback();
+    LOG_BLE("[STARTUP] Firmware marked as valid (rollback cancelled)\n");
+
     // Enable BLE by default during bootup with 2-minute timeout
     // (Previously disabled by default for security, now enabled for user convenience)
     bluetooth_manager.enable_during_bootup();

@@ -177,7 +177,14 @@ static int delta_init_flash_mem(flash_mem_t *flash, const delta_opts_t *opts)
 
 static int delta_set_boot_partition(flash_mem_t *flash)
 {
+    if (esp_ota_end(flash->ota_handle) != ESP_OK) {
+        ESP_LOGE(TAG, "esp_ota_end failed - firmware image may be invalid");
+        free(flash);
+        return -DELTA_TARGET_IMAGE_ERROR;
+    }
+
     if (esp_ota_set_boot_partition(flash->dest) != ESP_OK) {
+        free(flash);
         return -DELTA_TARGET_IMAGE_ERROR;
     }
     free(flash);
@@ -275,6 +282,7 @@ int delta_check_and_apply(int patch_size, const delta_opts_t *opts)
 
         ret = delta_init_flash_mem(flash, opts);
         if (ret) {
+            free(flash);
             return ret;
         }
 
@@ -286,6 +294,8 @@ int delta_check_and_apply(int patch_size, const delta_opts_t *opts)
                                             flash);
 
         if (ret <= 0) {
+            esp_ota_abort(flash->ota_handle);
+            free(flash);
             return ret;
         }
 
