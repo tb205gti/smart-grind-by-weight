@@ -88,6 +88,7 @@ void BluetoothManager::enqueue_ui_status(const char* status) {
         msg.text[sizeof(msg.text) - 1] = '\0';
     }
     // Non-blocking send; drop if full to avoid blocking BLE task
+    if (!ble_enabled) return;
     xQueueSend(ui_status_queue, &msg, 0);
 }
 
