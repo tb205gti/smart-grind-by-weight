@@ -125,6 +125,9 @@ void setup() {
     // Initialize individual task modules BEFORE TaskManager creates FreeRTOS tasks
     // This ensures all task dependencies are ready before tasks start running
     LOG_BLE("[STARTUP] Initializing task module dependencies...\n");
+
+    bluetooth_manager.enable_during_bootup();
+    
     weight_sampling_task.init(hardware_manager.get_load_cell(), &grind_logger);
     grind_control_task.init(&grind_controller, hardware_manager.get_load_cell(),
                            hardware_manager.get_grinder(), &grind_logger);
@@ -149,11 +152,6 @@ void setup() {
     file_io_task.init(task_manager.get_file_io_queue());
 
     LOG_BLE("✅ All task modules initialized\n");
-
-    // Enable BLE after FreeRTOS tasks are running so the UI render task (priority 2)
-    // can preempt the loop task (priority 1) during BLE init delays and render the
-    // first frame without waiting for BLE stack setup to complete.
-    bluetooth_manager.enable_during_bootup();
 }
 
 void loop() {
