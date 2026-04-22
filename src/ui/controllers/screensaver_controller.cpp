@@ -81,8 +81,8 @@ void ScreensaverController::show() {
     lv_img_set_src(image_widget_, &image_dsc_);
     lv_obj_center(image_widget_);
 
-    // Load the overlay screen
-    lv_screen_load(overlay_screen_);
+    // Fade in the overlay screen over 500ms; auto_del=false keeps previous_screen_ alive for hide()
+    lv_screen_load_anim(overlay_screen_, LV_SCR_LOAD_ANIM_FADE_IN, 500, 0, false);
     visible_ = true;
 }
 

@@ -14,16 +14,19 @@ private:
     uint16_t* dma_staging_buffer;
     TouchDriver touch_driver;
     uint16_t dma_staging_rows;
-    
+
     uint32_t screen_width;
     uint32_t screen_height;
     uint32_t buffer_size;
     bool initialized;
+    lv_obj_t* boot_splash_screen_ = nullptr;
 
 public:
     void init();
     void update();
     void set_brightness(float brightness);
+    void show_boot_splash();
+    void clear_boot_splash();
     
     uint32_t get_width() const { return screen_width; }
     uint32_t get_height() const { return screen_height; }

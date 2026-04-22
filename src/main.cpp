@@ -68,6 +68,9 @@ void setup() {
     }
     
     hardware_manager.init();
+    hardware_manager.get_display()->set_brightness(USER_SCREEN_BRIGHTNESS_NORMAL);
+    hardware_manager.get_display()->show_boot_splash();
+
     profile_controller.init(hardware_manager.get_preferences());
     statistics_manager.init(hardware_manager.get_preferences());
     grind_controller.init(hardware_manager.get_load_cell(), hardware_manager.get_grinder(), hardware_manager.get_preferences());
@@ -94,6 +97,7 @@ void setup() {
         state_machine.init(UIState::READY);
     }
     
+    hardware_manager.get_display()->clear_boot_splash();
     ui_manager.init(&hardware_manager, &state_machine, &profile_controller, &grind_controller, &bluetooth_manager);
     
     // Store OTA failure info in ui_manager and refresh the screen so the

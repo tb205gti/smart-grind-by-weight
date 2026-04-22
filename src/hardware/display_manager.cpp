@@ -169,6 +169,36 @@ uint32_t DisplayManager::millis_cb() {
     return millis();
 }
 
+void DisplayManager::show_boot_splash() {
+    if (!initialized) return;
+
+    boot_splash_screen_ = lv_obj_create(nullptr);
+    lv_obj_set_style_bg_color(boot_splash_screen_, lv_color_hex(THEME_COLOR_BACKGROUND), 0);
+    lv_obj_set_style_bg_opa(boot_splash_screen_, LV_OPA_COVER, 0);
+
+    lv_obj_t* title = lv_label_create(boot_splash_screen_);
+    lv_label_set_text(title, "Grind by Weight");
+    lv_obj_set_style_text_color(title, lv_color_hex(THEME_COLOR_PRIMARY), 0);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_36, 0);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, -16);
+
+    lv_obj_t* subtitle = lv_label_create(boot_splash_screen_);
+    lv_label_set_text(subtitle, "Starting up...");
+    lv_obj_set_style_text_color(subtitle, lv_color_hex(0x888888), 0);
+    lv_obj_set_style_text_font(subtitle, &lv_font_montserrat_16, 0);
+    lv_obj_align(subtitle, LV_ALIGN_CENTER, 0, 28);
+
+    lv_screen_load(boot_splash_screen_);
+    lv_timer_handler();
+    lv_timer_handler();
+}
+
+void DisplayManager::clear_boot_splash() {
+    if (!boot_splash_screen_) return;
+    lv_obj_delete(boot_splash_screen_);
+    boot_splash_screen_ = nullptr;
+}
+
 void DisplayManager::set_brightness(float brightness) {
     if (!initialized || !gfx_device) return;
     
