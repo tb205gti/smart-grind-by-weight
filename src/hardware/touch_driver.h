@@ -21,6 +21,10 @@ private:
     uint32_t consecutive_poll_failures = 0;
     static constexpr uint32_t kMaxConsecutivePollFailures = 50; // ~800ms at 16ms poll rate
 
+    // Retry backoff when chip is not yet ready at boot
+    uint32_t last_init_attempt_ms = 0;
+    static constexpr uint32_t kInitRetryIntervalMs = 500;
+
     bool faulted = false;
 
 public:

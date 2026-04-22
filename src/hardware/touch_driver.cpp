@@ -113,10 +113,9 @@ void TouchDriver::init() {
         }
     }
 
-    // Give FT3168 time to complete its power-on sequence before the first transaction
-    delay(50);
-
-    // Probe: confirm the chip is alive and returning a sane touch count
+    // Probe: confirm the chip is alive and returning a sane touch count.
+    // On failure we leave initialized=false and let update() retry on a backoff schedule
+    // rather than permanently disabling touch.
     uint8_t probe_buf[5] = {0};
     uint8_t probe_reg = 0x02;
     esp_err_t probe_err = i2c_master_transmit_receive(
@@ -124,15 +123,13 @@ void TouchDriver::init() {
         probe_buf, sizeof(probe_buf), kTouchI2CTimeoutMs);
 
     if (probe_err != ESP_OK) {
-        ESP_LOGE(kTag, "Touch probe failed: %s — touch disabled", esp_err_to_name(probe_err));
-        disabled = true;
+        ESP_LOGW(kTag, "Touch probe failed: %s — will retry", esp_err_to_name(probe_err));
         faulted = true;
         return;
     }
     uint8_t probe_touches = probe_buf[0] & 0x0F;
     if (probe_touches > 10) {
-        ESP_LOGE(kTag, "Touch probe returned garbage (touches=%u) — touch disabled", probe_touches);
-        disabled = true;
+        ESP_LOGW(kTag, "Touch probe returned garbage (touches=%u) — will retry", probe_touches);
         faulted = true;
         return;
     }
@@ -145,9 +142,20 @@ void TouchDriver::init() {
 }
 
 void TouchDriver::update() {
-    if (!initialized || disabled || device_handle == nullptr) {
+    // Explicit user disable (e.g. during OTA) — hard stop, no retry.
+    if (disabled) return;
+
+    // Not yet initialised — retry on a backoff schedule instead of giving up.
+    if (!initialized) {
+        uint32_t now = millis();
+        if (now - last_init_attempt_ms >= kInitRetryIntervalMs) {
+            last_init_attempt_ms = now;
+            init();
+        }
         return;
     }
+
+    if (device_handle == nullptr) return;
 
     uint8_t buf[5] = {0};
     uint8_t reg = 0x02; // FT3168_REG_NUM_TOUCHES
