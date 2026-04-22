@@ -23,16 +23,21 @@ void suppress_touch_i2c_logs() {
 }
 }
 
-// Bit-bang 9 SCL pulses then a STOP condition to release any FT3168 stuck
+// Bit-bang 9 SCL pulses then a proper STOP condition to release a FT3168 stuck
 // mid-transaction from a prior software or watchdog reset.
+// Must only be called before the IDF I2C driver has taken ownership of the pins.
 void TouchDriver::recover_i2c_bus() {
     gpio_num_t sda = static_cast<gpio_num_t>(HW_TOUCH_I2C_SDA_PIN);
     gpio_num_t scl = static_cast<gpio_num_t>(HW_TOUCH_I2C_SCL_PIN);
 
-    gpio_set_direction(sda, GPIO_MODE_INPUT_OUTPUT_OD);
+    // Push-pull output on both pins - drives lines directly, no pullup dependency
+    gpio_set_direction(sda, GPIO_MODE_OUTPUT);
     gpio_set_direction(scl, GPIO_MODE_OUTPUT);
     gpio_set_level(sda, 1);
+    gpio_set_level(scl, 1);
+    delayMicroseconds(10);
 
+    // 9 clock pulses advance the slave past any stuck bit position (max 8 data + 1 ACK)
     for (int i = 0; i < 9; i++) {
         gpio_set_level(scl, 0);
         delayMicroseconds(5);
@@ -40,15 +45,18 @@ void TouchDriver::recover_i2c_bus() {
         delayMicroseconds(5);
     }
 
-    // STOP condition: SDA low while SCL high, then SDA goes high
+    // Proper STOP condition: SCL low → SDA low → SCL high → SDA high
+    // (previously this code generated a START before the STOP, keeping the slave confused)
+    gpio_set_level(scl, 0);
+    delayMicroseconds(5);
     gpio_set_level(sda, 0);
     delayMicroseconds(5);
     gpio_set_level(scl, 1);
     delayMicroseconds(5);
-    gpio_set_level(sda, 1);
-    delayMicroseconds(5);
+    gpio_set_level(sda, 1); // SDA rises while SCL high = STOP
+    delayMicroseconds(10);
 
-    // Release both pins to floating input so the IDF I2C driver can take ownership
+    // Release pins to floating input so the IDF I2C driver can configure them
     gpio_set_direction(scl, GPIO_MODE_INPUT);
     gpio_set_direction(sda, GPIO_MODE_INPUT);
 }
@@ -74,10 +82,10 @@ void TouchDriver::init() {
     }
     suppress_touch_i2c_logs();
 
-    // Unstick any slave that was left mid-transaction from a prior reset
-   //Disabled for now, re-enable if needed.. recover_i2c_bus();
-
     if (bus_handle == nullptr) {
+        // Unstick any slave left mid-transaction from a prior reset, before the
+        // IDF driver takes ownership of the GPIO pins
+        recover_i2c_bus();
         i2c_master_bus_config_t bus_config = {};
         bus_config.i2c_port = I2C_NUM_0;
         bus_config.sda_io_num = static_cast<gpio_num_t>(HW_TOUCH_I2C_SDA_PIN);

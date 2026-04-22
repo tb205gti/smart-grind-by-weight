@@ -520,10 +520,18 @@ void TaskManager::print_task_heartbeat(int task_index, const char* task_name) co
 #if SYS_ENABLE_REALTIME_HEARTBEAT
     const TaskMetrics& metrics = task_metrics[task_index];
     uint32_t avg_cycle_time = metrics.cycle_count > 0 ? metrics.cycle_time_sum_ms / metrics.cycle_count : 0;
-    
-    LOG_BLE("[%lums TASK_HEARTBEAT_%s] Cycles: %lu/10s | Avg: %lums (%lu-%lums) | Build: #%d\n",
-           millis(), task_name, metrics.cycle_count, avg_cycle_time, 
-           metrics.cycle_time_min_ms, metrics.cycle_time_max_ms, BUILD_NUMBER);
+
+    constexpr int kUIRenderTaskIndex = 2;
+    if (task_index == kUIRenderTaskIndex && hardware_manager) {
+        const char* touch_state = hardware_manager->get_display()->get_touch_driver()->is_faulted() ? "FAULT" : "OK";
+        LOG_BLE("[%lums TASK_HEARTBEAT_%s] Cycles: %lu/10s | Avg: %lums (%lu-%lums) | Touch: %s | Build: #%d\n",
+               millis(), task_name, metrics.cycle_count, avg_cycle_time,
+               metrics.cycle_time_min_ms, metrics.cycle_time_max_ms, touch_state, BUILD_NUMBER);
+    } else {
+        LOG_BLE("[%lums TASK_HEARTBEAT_%s] Cycles: %lu/10s | Avg: %lums (%lu-%lums) | Build: #%d\n",
+               millis(), task_name, metrics.cycle_count, avg_cycle_time,
+               metrics.cycle_time_min_ms, metrics.cycle_time_max_ms, BUILD_NUMBER);
+    }
 #endif
 }
 
