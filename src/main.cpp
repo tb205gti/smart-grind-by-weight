@@ -221,10 +221,11 @@ void loop() {
         const char* grinder_state = is_grinding ? "ACTIVE" : "IDLE";
         const char* tasks_status = task_manager.are_tasks_healthy() ? "HEALTHY" : "ERROR";
         size_t free_heap_kb = ESP.getFreeHeap() / 1024;
-        
-        LOG_BLE("[%lums MAIN_LOOP_HEARTBEAT] Cycles: %lu/10s | Avg: %lums (%lu-%lums) | Tasks: %s | BLE: %s | Grinder: %s | Mem: %zuKB | Build: #%d\n",
+        const char* touch_state = hardware_manager.get_display()->get_touch_driver()->is_faulted() ? "FAULT" : "OK";
+
+        LOG_BLE("[%lums MAIN_LOOP_HEARTBEAT] Cycles: %lu/10s | Avg: %lums (%lu-%lums) | Tasks: %s | BLE: %s | Grinder: %s | Touch: %s | Mem: %zuKB | Build: #%d\n",
                millis(), core1_cycle_count_10s, avg_cycle_time, core1_cycle_time_min_ms, core1_cycle_time_max_ms,
-               tasks_status, ble_state, grinder_state, free_heap_kb, BUILD_NUMBER);
+               tasks_status, ble_state, grinder_state, touch_state, free_heap_kb, BUILD_NUMBER);
         
         // Reset Core 1 metrics for next interval
         core1_cycle_count_10s = 0;
