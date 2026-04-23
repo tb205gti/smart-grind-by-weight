@@ -195,8 +195,12 @@ void DisplayManager::show_boot_splash() {
 
 void DisplayManager::clear_boot_splash() {
     if (!boot_splash_screen_) return;
+        // Load a blank screen before deleting so LVGL's active screen pointer
+    // is never left dangling. ui_manager.init() will load the real screen next.
+    lv_obj_t* blank = lv_obj_create(nullptr);
+    lv_screen_load(blank);
     lv_obj_delete(boot_splash_screen_);
-    boot_splash_screen_ = nullptr;
+    boot_splash_screen_ = nullptr
 }
 
 void DisplayManager::set_brightness(float brightness) {
