@@ -8,6 +8,7 @@
 
 DisplayManager* g_display_manager = nullptr;
 
+
 void DisplayManager::init() {
     g_display_manager = this;
     
@@ -177,7 +178,7 @@ void DisplayManager::show_boot_splash() {
     lv_obj_set_style_bg_opa(boot_splash_screen_, LV_OPA_COVER, 0);
 
     lv_obj_t* title = lv_label_create(boot_splash_screen_);
-    lv_label_set_text(title, "Grind by Weight");
+    lv_label_set_text(title, "Eureka!");
     lv_obj_set_style_text_color(title, lv_color_hex(THEME_COLOR_PRIMARY), 0);
     lv_obj_set_style_text_font(title, &lv_font_montserrat_36, 0);
     lv_obj_align(title, LV_ALIGN_CENTER, 0, -16);
@@ -195,7 +196,7 @@ void DisplayManager::show_boot_splash() {
 
 void DisplayManager::clear_boot_splash() {
     if (!boot_splash_screen_) return;
-        // Load a blank screen before deleting so LVGL's active screen pointer
+    // Load a blank screen before deleting so LVGL's active screen pointer
     // is never left dangling. ui_manager.init() will load the real screen next.
     lv_obj_t* blank = lv_obj_create(nullptr);
     lv_screen_load(blank);

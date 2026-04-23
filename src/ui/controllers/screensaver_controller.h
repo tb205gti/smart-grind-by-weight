@@ -16,6 +16,7 @@ public:
 
     /// Check if a screensaver image file exists on LittleFS
     bool has_image() const;
+    bool initialRun = false;
 
     /// Read NVS preference: show image on startup
     bool is_startup_enabled() const;
