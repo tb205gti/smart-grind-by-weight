@@ -179,15 +179,15 @@ void DisplayManager::show_boot_splash() {
 
     lv_obj_t* title = lv_label_create(boot_splash_screen_);
     lv_label_set_text(title, "Eureka!");
-    lv_obj_set_style_text_color(title, lv_color_hex(THEME_COLOR_PRIMARY), 0);
-    lv_obj_set_style_text_font(title, &lv_font_montserrat_36, 0);
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, -16);
+    lv_obj_set_style_text_color(title, lv_color_hex(THEME_COLOR_TEXT_SECONDARY), 0);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_48, 0);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, -10);
 
     lv_obj_t* subtitle = lv_label_create(boot_splash_screen_);
     lv_label_set_text(subtitle, "Starting up...");
-    lv_obj_set_style_text_color(subtitle, lv_color_hex(0x888888), 0);
-    lv_obj_set_style_text_font(subtitle, &lv_font_montserrat_16, 0);
-    lv_obj_align(subtitle, LV_ALIGN_CENTER, 0, 28);
+    lv_obj_set_style_text_color(subtitle, lv_color_hex(THEME_COLOR_TEXT_SECONDARY), 0);
+    lv_obj_set_style_text_font(subtitle, &lv_font_montserrat_24, 0);
+    lv_obj_align(subtitle, LV_ALIGN_CENTER, 0, 68);
 
     lv_screen_load(boot_splash_screen_);
     lv_timer_handler();

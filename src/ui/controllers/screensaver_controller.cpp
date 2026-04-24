@@ -86,7 +86,7 @@ void ScreensaverController::show() {
         lv_screen_load(overlay_screen_);
     }
     else{
-        lv_screen_load_anim(overlay_screen_, LV_SCR_LOAD_ANIM_FADE_IN, 350, 0, false);
+        lv_screen_load_anim(overlay_screen_, LV_SCR_LOAD_ANIM_FADE_IN, 450, 0, false);
     }
     visible_ = true;
     initialRun = true;
